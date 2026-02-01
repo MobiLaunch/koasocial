@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Loader2, Sparkles, MapPin, Link as LinkIcon, Edit3 } from 'lucide-react';
+import { Calendar, Loader2, Sparkles, MapPin, Link as LinkIcon, Edit3, BadgeCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { PostCard } from '@/components/PostCard';
 import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { VerificationRequestModal } from '@/components/VerificationRequestModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, getUserInteractions, type Post } from '@/lib/api';
 import { formatCount, formatHandle } from '@/lib/formatters';
@@ -18,6 +20,7 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ followers: 0, following: 0 });
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const loadPosts = async () => {
     if (!profile) return;
@@ -130,12 +133,27 @@ export default function ProfilePage() {
         {/* User info */}
         <div className="mt-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
               {profile.display_name}
+              {profile.is_verified && (
+                <VerifiedBadge tier={profile.verification_tier} size="lg" />
+              )}
             </h1>
-            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent/50">
-              🐨 Member
-            </Badge>
+            {profile.is_verified ? (
+              <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                {profile.verification_tier === 'founder' ? '🐨 Founder' : '✓ Verified'}
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs h-7 gap-1"
+                onClick={() => setShowVerificationModal(true)}
+              >
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Get verified
+              </Button>
+            )}
           </div>
           <p className="text-muted-foreground mt-1 font-medium">
             {formatHandle(profile.username, profile.instance)}
@@ -282,6 +300,12 @@ export default function ProfilePage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Verification Request Modal */}
+      <VerificationRequestModal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+      />
     </div>
   );
 }

@@ -9,6 +9,9 @@ export interface Profile {
   avatar_url: string | null;
   banner_url: string | null;
   instance: string;
+  is_verified?: boolean;
+  verification_tier?: string | null;
+  social_links?: Record<string, string>;
   created_at: string;
   updated_at: string;
   followers_count?: number;

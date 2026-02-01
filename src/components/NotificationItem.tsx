@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/formatters';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import type { Notification, Profile, Post } from '@/lib/api';
 
 interface NotificationItemProps {
@@ -65,7 +66,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-3">
-            <Link to={`/user/${actor.username}`}>
+            <Link to={`/@${actor.username}`}>
               <Avatar className="h-10 w-10 ring-2 ring-background">
                 <AvatarImage src={actor.avatar_url || undefined} alt={actor.display_name} />
                 <AvatarFallback className="bg-primary/10 text-primary">
@@ -77,10 +78,13 @@ export function NotificationItem({ notification }: NotificationItemProps) {
             <div className="flex-1 min-w-0">
               <p className="text-foreground">
                 <Link
-                  to={`/user/${actor.username}`}
-                  className="font-semibold hover:underline"
+                  to={`/@${actor.username}`}
+                  className="font-semibold hover:underline inline-flex items-center gap-1"
                 >
                   {actor.display_name}
+                  {actor.is_verified && (
+                    <VerifiedBadge tier={actor.verification_tier} size="sm" />
+                  )}
                 </Link>
                 {' '}
                 {config.getText()}
