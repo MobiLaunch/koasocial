@@ -15,24 +15,6 @@ const NEWS_SOURCES: Record<string, {
   rssUrl: string;
   category: 'world' | 'finance' | 'breaking' | 'general';
 }> = {
-  'reuters': {
-    name: 'Reuters',
-    bias: 'center',
-    biasLabel: 'Center',
-    credibility: 'high',
-    credibilityScore: 95,
-    rssUrl: 'https://www.reutersagency.com/feed/?best-topics=world&post_type=best',
-    category: 'world',
-  },
-  'ap': {
-    name: 'Associated Press',
-    bias: 'center',
-    biasLabel: 'Center',
-    credibility: 'high',
-    credibilityScore: 94,
-    rssUrl: 'https://feedx.net/rss/ap.xml',
-    category: 'world',
-  },
   'bbc': {
     name: 'BBC News',
     bias: 'left-center',
@@ -50,15 +32,6 @@ const NEWS_SOURCES: Record<string, {
     credibilityScore: 88,
     rssUrl: 'https://feeds.npr.org/1001/rss.xml',
     category: 'general',
-  },
-  'wsj': {
-    name: 'Wall Street Journal',
-    bias: 'right-center',
-    biasLabel: 'Right-Center',
-    credibility: 'mostly-factual',
-    credibilityScore: 85,
-    rssUrl: 'https://feeds.a].',
-    category: 'finance',
   },
   'guardian': {
     name: 'The Guardian',
@@ -87,6 +60,24 @@ const NEWS_SOURCES: Record<string, {
     rssUrl: 'https://www.aljazeera.com/xml/rss/all.xml',
     category: 'world',
   },
+  'cbc': {
+    name: 'CBC News',
+    bias: 'left-center',
+    biasLabel: 'Left-Center',
+    credibility: 'high',
+    credibilityScore: 88,
+    rssUrl: 'https://www.cbc.ca/webfeed/rss/rss-world',
+    category: 'world',
+  },
+  'abc': {
+    name: 'ABC News',
+    bias: 'left-center',
+    biasLabel: 'Left-Center',
+    credibility: 'mostly-factual',
+    credibilityScore: 82,
+    rssUrl: 'https://abcnews.go.com/abcnews/internationalheadlines',
+    category: 'world',
+  },
 };
 
 interface NewsItem {
@@ -106,6 +97,24 @@ interface NewsItem {
   category: string;
 }
 
+// Decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
+    .replace(/&#x([a-fA-F0-9]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 // Simple XML parser for RSS feeds
 function parseRSSItem(itemXml: string): { title: string; description: string; link: string; pubDate: string } | null {
   try {
@@ -118,15 +127,19 @@ function parseRSSItem(itemXml: string): { title: string; description: string; li
       return match ? match[1].trim() : '';
     };
 
-    const title = getTagContent(itemXml, 'title');
-    const description = getTagContent(itemXml, 'description') || getTagContent(itemXml, 'summary');
+    let title = getTagContent(itemXml, 'title');
+    let description = getTagContent(itemXml, 'description') || getTagContent(itemXml, 'summary');
     const link = getTagContent(itemXml, 'link') || itemXml.match(/<link[^>]*href="([^"]+)"/i)?.[1] || '';
     const pubDate = getTagContent(itemXml, 'pubDate') || getTagContent(itemXml, 'published') || getTagContent(itemXml, 'updated');
 
     if (!title || !link) return null;
 
+    // Decode HTML entities in title and description
+    title = decodeHtmlEntities(title);
+    description = decodeHtmlEntities(description);
+
     // Strip HTML tags from description
-    const cleanDescription = description.replace(/<[^>]*>/g, '').substring(0, 300);
+    const cleanDescription = description.replace(/<[^>]*>/g, '').substring(0, 300).trim();
 
     return { title, description: cleanDescription, link, pubDate };
   } catch {
@@ -141,8 +154,8 @@ async function fetchFromSource(sourceId: string, source: typeof NEWS_SOURCES[str
 
     const response = await fetch(source.rssUrl, {
       headers: {
-        'Accept': 'application/rss+xml, application/xml, text/xml',
-        'User-Agent': 'KoaSocial/1.0',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (compatible; KoaSocial/1.0)',
       },
       signal: controller.signal,
     });
