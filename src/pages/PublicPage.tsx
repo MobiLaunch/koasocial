@@ -95,12 +95,12 @@ export default function PublicPage() {
       {/* Header */}
       <header className="sticky top-0 lg:top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
-              <Globe className="h-6 w-6 text-primary" />
-              <h1 className="font-display text-xl font-bold text-foreground">Public Timeline</h1>
+              <Globe className="h-6 w-6 text-primary flex-shrink-0" />
+              <h1 className="font-display text-xl font-bold text-foreground truncate">Public Timeline</h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1 truncate">
               Posts from across the fediverse
             </p>
           </div>
@@ -109,6 +109,7 @@ export default function PublicPage() {
             size="icon"
             onClick={loadAllPosts}
             disabled={loading || federatedLoading}
+            className="flex-shrink-0"
           >
             <RefreshCw className={`h-4 w-4 ${(loading || federatedLoading) ? 'animate-spin' : ''}`} />
           </Button>
@@ -116,10 +117,10 @@ export default function PublicPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mt-3">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="mixed">Mixed</TabsTrigger>
-            <TabsTrigger value="local">Local</TabsTrigger>
-            <TabsTrigger value="fediverse">Fediverse</TabsTrigger>
+          <TabsList className="w-full">
+            <TabsTrigger value="mixed" className="flex-1 text-xs sm:text-sm">Mixed</TabsTrigger>
+            <TabsTrigger value="local" className="flex-1 text-xs sm:text-sm">Local</TabsTrigger>
+            <TabsTrigger value="fediverse" className="flex-1 text-xs sm:text-sm">Fediverse</TabsTrigger>
           </TabsList>
         </Tabs>
       </header>
