@@ -111,7 +111,7 @@ export default function AuthPage() {
       <Card className="w-full max-w-md rounded-2xl koa-shadow">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Logo size="lg" showIcon={true} linkTo="/" />
+            <Logo size="lg" linkTo="/" />
           </div>
           <CardTitle className="font-display text-2xl">
             {isLogin ? 'Welcome back!' : 'Join koasocial'}
