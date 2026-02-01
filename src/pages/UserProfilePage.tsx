@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2 } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Calendar, Loader2, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,9 +12,11 @@ import { fetchPosts, fetchProfile, getUserInteractions, toggleFollow, type Post,
 import { formatCount, formatHandle } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { createConversation, findExistingConversation } from '@/hooks/useMessages';
 
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const { profile: currentProfile } = useAuth();
   const { toast } = useToast();
   
@@ -23,6 +25,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [messageLoading, setMessageLoading] = useState(false);
 
   const cleanUsername = username?.replace('@', '') || '';
 
@@ -97,6 +100,32 @@ export default function UserProfilePage() {
       });
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    if (!currentProfile || !profile) return;
+    
+    setMessageLoading(true);
+    try {
+      // Check for existing conversation
+      const existingConvId = await findExistingConversation(currentProfile.id, profile.id);
+      
+      if (existingConvId) {
+        navigate(`/messages?conversation=${existingConvId}`);
+      } else {
+        // Create new conversation
+        const conversation = await createConversation([currentProfile.id, profile.id]);
+        navigate(`/messages?conversation=${conversation.id}`);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Could not start conversation',
+        variant: 'destructive',
+      });
+    } finally {
+      setMessageLoading(false);
     }
   };
 
@@ -179,23 +208,38 @@ export default function UserProfilePage() {
               </Button>
             </Link>
           ) : (
-            <Button
-              onClick={handleFollow}
-              disabled={followLoading}
-              className={`rounded-full ${
-                isFollowing
-                  ? 'bg-muted text-foreground hover:bg-destructive hover:text-destructive-foreground'
-                  : 'koa-gradient text-primary-foreground hover:opacity-90'
-              }`}
-            >
-              {followLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isFollowing ? (
-                'Following'
-              ) : (
-                'Follow'
-              )}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleMessage}
+                disabled={messageLoading}
+                className="rounded-full"
+              >
+                {messageLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MessageCircle className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className={`rounded-full ${
+                  isFollowing
+                    ? 'bg-muted text-foreground hover:bg-destructive hover:text-destructive-foreground'
+                    : 'koa-gradient text-primary-foreground hover:opacity-90'
+                }`}
+              >
+                {followLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  'Following'
+                ) : (
+                  'Follow'
+                )}
+              </Button>
+            </>
           )}
         </div>
 
