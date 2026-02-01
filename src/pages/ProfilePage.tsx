@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar, Loader2, Sparkles, MapPin, Link as LinkIcon, Edit3 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { PostCard } from '@/components/PostCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, getUserInteractions, type Post } from '@/lib/api';
@@ -80,100 +81,128 @@ export default function ProfilePage() {
   return (
     <div className="animate-fade-in">
       {/* Banner */}
-      <div className="relative h-48 bg-gradient-to-br from-primary/30 to-koa-peach/30">
-        {profile.banner_url && (
+      <div className="relative h-48 sm:h-56 bg-gradient-to-br from-primary/30 via-koa-peach/40 to-koa-cream/30 overflow-hidden">
+        {profile.banner_url ? (
           <img
             src={profile.banner_url}
             alt="Profile banner"
             className="w-full h-full object-cover"
           />
+        ) : (
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-koa-peach/30 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-koa-coral/10 rounded-full blur-2xl" />
+          </div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/30 to-transparent" />
       </div>
 
       {/* Profile header */}
-      <div className="relative px-4 pb-4 border-b">
+      <div className="relative px-4 pb-6 border-b">
         {/* Avatar */}
-        <div className="relative -mt-16 mb-4">
-          <Avatar className="h-32 w-32 ring-4 ring-background">
-            <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-            <AvatarFallback className="bg-primary/10 text-primary text-4xl">
-              {profile.display_name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
+        <div className="relative -mt-16 sm:-mt-20 mb-4">
+          <div className="relative inline-block">
+            <Avatar className="h-28 w-28 sm:h-36 sm:w-36 ring-4 ring-background shadow-xl">
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+              <AvatarFallback className="koa-gradient text-primary-foreground text-3xl sm:text-4xl font-bold">
+                {profile.display_name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-1 -right-1 bg-koa-success rounded-full p-1.5 ring-2 ring-background" style={{ backgroundColor: 'hsl(var(--koa-success))' }}>
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+          </div>
         </div>
 
         {/* Action buttons */}
         <div className="absolute right-4 top-4 flex gap-2">
           <Button
             onClick={() => navigate('/profile/edit')}
-            className="rounded-full koa-gradient text-primary-foreground hover:opacity-90"
+            className="rounded-full koa-gradient text-primary-foreground hover:opacity-90 koa-shadow transition-all duration-300 hover:scale-105 gap-2"
           >
-            Edit profile
+            <Edit3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Edit profile</span>
           </Button>
         </div>
 
         {/* User info */}
-        <div className="mt-2">
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            {profile.display_name}
-          </h1>
-          <p className="text-muted-foreground">
+        <div className="mt-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+              {profile.display_name}
+            </h1>
+            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent/50">
+              🐨 Member
+            </Badge>
+          </div>
+          <p className="text-muted-foreground mt-1 font-medium">
             {formatHandle(profile.username, profile.instance)}
           </p>
         </div>
 
         {/* Bio */}
         {profile.bio && (
-          <p className="mt-3 text-foreground leading-relaxed">
+          <p className="mt-4 text-foreground leading-relaxed whitespace-pre-wrap">
             {profile.bio}
           </p>
         )}
 
         {/* Meta info */}
-        <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5 bg-accent/30 px-3 py-1.5 rounded-full">
+            <Calendar className="h-4 w-4 text-primary" />
             Joined {joinedDate}
           </span>
+          {profile.instance && (
+            <span className="flex items-center gap-1.5 bg-accent/30 px-3 py-1.5 rounded-full">
+              <LinkIcon className="h-4 w-4 text-primary" />
+              {profile.instance}
+            </span>
+          )}
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-6 mt-4">
-          <Link to="#" className="hover:underline">
-            <span className="font-bold text-foreground">{formatCount(stats.following)}</span>
-            <span className="text-muted-foreground ml-1">Following</span>
+        <div className="flex items-center gap-6 mt-5">
+          <Link to="#" className="group hover:no-underline">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent/30 group-hover:bg-accent/50 transition-colors">
+              <span className="font-bold text-foreground text-lg">{formatCount(stats.following)}</span>
+              <span className="text-muted-foreground text-sm">Following</span>
+            </div>
           </Link>
-          <Link to="#" className="hover:underline">
-            <span className="font-bold text-foreground">{formatCount(stats.followers)}</span>
-            <span className="text-muted-foreground ml-1">Followers</span>
+          <Link to="#" className="group hover:no-underline">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent/30 group-hover:bg-accent/50 transition-colors">
+              <span className="font-bold text-foreground text-lg">{formatCount(stats.followers)}</span>
+              <span className="text-muted-foreground text-sm">Followers</span>
+            </div>
           </Link>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0 overflow-x-auto">
           <TabsTrigger
             value="posts"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-6 py-3.5 font-semibold transition-all"
           >
             Posts
           </TabsTrigger>
           <TabsTrigger
             value="replies"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-6 py-3.5 font-semibold transition-all"
           >
             Replies
           </TabsTrigger>
           <TabsTrigger
             value="media"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-6 py-3.5 font-semibold transition-all"
           >
             Media
           </TabsTrigger>
           <TabsTrigger
             value="likes"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-6 py-3.5 font-semibold transition-all"
           >
             Likes
           </TabsTrigger>
@@ -191,28 +220,43 @@ export default function ProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              <p>No posts yet</p>
-              <p className="text-sm mt-1">When you post, it'll show up here</p>
+            <div className="p-12 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/50 mb-4">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <p className="text-lg font-medium text-foreground">No posts yet</p>
+              <p className="text-sm mt-1 text-muted-foreground">When you post, it'll show up here ✨</p>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="replies" className="mt-0">
-          <div className="p-8 text-center text-muted-foreground">
-            <p>No replies yet</p>
+          <div className="p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/50 mb-4">
+              <span className="text-3xl">💬</span>
+            </div>
+            <p className="text-lg font-medium text-foreground">No replies yet</p>
+            <p className="text-sm mt-1 text-muted-foreground">Your replies to others will appear here</p>
           </div>
         </TabsContent>
 
         <TabsContent value="media" className="mt-0">
-          <div className="p-8 text-center text-muted-foreground">
-            <p>No media posts yet</p>
+          <div className="p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/50 mb-4">
+              <span className="text-3xl">📸</span>
+            </div>
+            <p className="text-lg font-medium text-foreground">No media posts yet</p>
+            <p className="text-sm mt-1 text-muted-foreground">Photos and videos will show up here</p>
           </div>
         </TabsContent>
 
         <TabsContent value="likes" className="mt-0">
-          <div className="p-8 text-center text-muted-foreground">
-            <p>Likes are private</p>
+          <div className="p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/50 mb-4">
+              <span className="text-3xl">❤️</span>
+            </div>
+            <p className="text-lg font-medium text-foreground">Likes are private</p>
+            <p className="text-sm mt-1 text-muted-foreground">Only you can see what you've liked</p>
           </div>
         </TabsContent>
       </Tabs>
