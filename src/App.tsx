@@ -15,6 +15,7 @@ import ProfileEditPage from "./pages/ProfileEditPage";
 import SearchPage from "./pages/SearchPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import SettingsPage from "./pages/SettingsPage";
+import MessagesPage from "./pages/MessagesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/profile/edit" element={<ProfileEditPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/messages" element={<MessagesPage />} />
       <Route path="/@:username" element={<UserProfilePage />} />
     </Route>
 
