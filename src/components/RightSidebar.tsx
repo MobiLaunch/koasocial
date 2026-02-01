@@ -5,12 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { suggestedUsers } from '@/data/mockData';
 import { TrendingPosts } from '@/components/TrendingPosts';
+import { TrendingTags } from '@/components/TrendingTags';
 
 export function RightSidebar() {
   return (
     <aside className="hidden xl:block w-80 p-4 space-y-4">
       {/* Federated Trending Posts */}
       <TrendingPosts />
+
+      {/* Federated Trending Tags */}
+      <TrendingTags />
 
       {/* Suggested to follow */}
       <Card className="rounded-2xl koa-shadow">
