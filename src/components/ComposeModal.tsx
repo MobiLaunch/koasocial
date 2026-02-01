@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Globe, Users, Lock, Mail, Smile, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Globe, Users, Lock, Mail, Smile, Loader2, Image, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { createPost } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 type Visibility = 'public' | 'unlisted' | 'followers' | 'direct';
 
@@ -37,24 +38,102 @@ const visibilityOptions = [
 ];
 
 export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalProps) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [isPosting, setIsPosting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const charsRemaining = MAX_CHARS - content.length;
   const isOverLimit = charsRemaining < 0;
-  const isEmpty = content.trim().length === 0;
+  const isEmpty = content.trim().length === 0 && !imageFile;
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please select an image under 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars') // Reusing avatars bucket for simplicity
+        .upload(`posts/${fileName}`, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(`posts/${fileName}`);
+
+      return publicUrl;
+    } catch (error: any) {
+      toast({
+        title: 'Upload failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handlePost = async () => {
     if (isEmpty || isOverLimit || !profile) return;
 
     setIsPosting(true);
     try {
-      await createPost(profile.id, content, visibility);
-      toast({ title: 'Posted!', description: 'Your post is now live.' });
+      let imageUrl: string | null = null;
+      
+      // Upload image if present
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+        if (!imageUrl && imageFile) {
+          // Upload failed, don't proceed
+          setIsPosting(false);
+          return;
+        }
+      }
+
+      await createPost(profile.id, content, visibility, undefined, imageUrl);
+      toast({ title: 'Posted! ✨', description: 'Your post is now live.' });
       setContent('');
+      removeImage();
       onPostCreated?.();
       onClose();
     } catch (error: any) {
@@ -89,19 +168,54 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1">
+            <div className="flex-1 space-y-3">
               <Textarea
                 placeholder="What's on your mind?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="min-h-[120px] border-0 p-0 resize-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/60"
+                className="min-h-[100px] border-0 p-0 resize-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/60"
               />
+
+              {/* Image preview */}
+              {imagePreview && (
+                <div className="relative rounded-xl overflow-hidden border">
+                  <img
+                    src={imagePreview}
+                    alt="Upload preview"
+                    className="w-full max-h-64 object-cover"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between p-4 border-t bg-muted/30">
           <div className="flex items-center gap-2">
+            {/* Image upload */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-primary hover:bg-primary/10"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!!imageFile}
+            >
+              <Image className="h-5 w-5" />
+            </Button>
+
             {/* Emoji picker placeholder */}
             <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10">
               <Smile className="h-5 w-5" />
@@ -112,7 +226,7 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 text-primary hover:bg-primary/10">
                   <VisibilityIcon className="h-4 w-4" />
-                  <span>{selectedVisibility.label}</span>
+                  <span className="hidden sm:inline">{selectedVisibility.label}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
@@ -139,10 +253,14 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
             </span>
             <Button
               onClick={handlePost}
-              disabled={isEmpty || isOverLimit || isPosting}
+              disabled={isEmpty || isOverLimit || isPosting || uploadingImage}
               className="rounded-full px-6 koa-gradient text-primary-foreground hover:opacity-90"
             >
-              {isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Post!'}
+              {isPosting || uploadingImage ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Post!'
+              )}
             </Button>
           </div>
         </div>

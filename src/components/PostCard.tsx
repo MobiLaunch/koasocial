@@ -173,6 +173,18 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
             {post.content}
           </p>
 
+          {/* Post image */}
+          {post.image_url && (
+            <div className="mt-3 rounded-xl overflow-hidden border">
+              <img
+                src={post.image_url}
+                alt="Post attachment"
+                className="w-full max-h-96 object-cover hover:opacity-95 transition-opacity cursor-pointer"
+                loading="lazy"
+              />
+            </div>
+          )}
+
           {/* Action bar */}
           <div className="flex items-center justify-between mt-4 max-w-md">
             {/* Reply */}

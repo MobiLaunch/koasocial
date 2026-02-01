@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { ComposeModal } from '@/components/ComposeModal';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 
 export default function MainLayout() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function MainLayout() {
       <div className="lg:ml-72 min-h-screen">
         <div className="flex">
           {/* Main content */}
-          <main className="flex-1 min-h-screen border-r max-w-2xl">
+          <main className="flex-1 min-h-screen border-r max-w-2xl pb-20 lg:pb-0">
             {/* Mobile header spacer */}
             <div className="h-14 lg:hidden" />
             <Outlet key={refreshKey} />
@@ -30,6 +31,9 @@ export default function MainLayout() {
           <RightSidebar />
         </div>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <MobileBottomNav onCompose={() => setIsComposeOpen(true)} />
 
       <ComposeModal
         isOpen={isComposeOpen}

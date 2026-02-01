@@ -148,6 +148,20 @@ export default function ProfilePage() {
           </p>
         )}
 
+        {/* Interests */}
+        {(profile as any).interests && (profile as any).interests.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {(profile as any).interests.map((interest: string) => (
+              <span
+                key={interest}
+                className="px-3 py-1 text-sm rounded-full bg-primary/10 text-primary font-medium"
+              >
+                {interest}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Meta info */}
         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5 bg-accent/30 px-3 py-1.5 rounded-full">

@@ -23,6 +23,7 @@ export interface Post {
   content: string;
   visibility: 'public' | 'unlisted' | 'followers' | 'direct';
   reply_to_id: string | null;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
   author?: Profile;
@@ -106,7 +107,13 @@ export async function getUserInteractions(profileId: string, postIds: string[]) 
 }
 
 // Create a new post
-export async function createPost(authorId: string, content: string, visibility: string = 'public', replyToId?: string) {
+export async function createPost(
+  authorId: string, 
+  content: string, 
+  visibility: string = 'public', 
+  replyToId?: string,
+  imageUrl?: string | null
+) {
   const { data, error } = await supabase
     .from('posts')
     .insert({
@@ -114,6 +121,7 @@ export async function createPost(authorId: string, content: string, visibility: 
       content,
       visibility,
       reply_to_id: replyToId || null,
+      image_url: imageUrl || null,
     })
     .select(`
       *,
