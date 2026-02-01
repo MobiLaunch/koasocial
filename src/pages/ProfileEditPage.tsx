@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Loader2, Sparkles, AtSign, User, FileText, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Sparkles, AtSign, User, FileText, Check, AlertCircle, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { InterestsPicker } from '@/components/InterestsPicker';
 
 export default function ProfileEditPage() {
   const { profile, user, refreshProfile } = useAuth();
@@ -24,6 +25,7 @@ export default function ProfileEditPage() {
     username: profile?.username || '',
     bio: profile?.bio || '',
   });
+  const [interests, setInterests] = useState<string[]>((profile as any)?.interests || []);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(profile?.banner_url || null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -166,6 +168,7 @@ export default function ProfileEditPage() {
           bio: formData.bio,
           avatar_url: avatarUrl,
           banner_url: bannerUrl,
+          interests: interests,
         })
         .eq('id', profile.id);
 
@@ -369,6 +372,19 @@ export default function ProfileEditPage() {
                 {formData.bio.length}/300
               </p>
             </div>
+          </div>
+
+          {/* Interests */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-semibold">
+              <Heart className="h-4 w-4 text-primary" />
+              Interests
+            </Label>
+            <InterestsPicker
+              interests={interests}
+              onChange={setInterests}
+              maxInterests={10}
+            />
           </div>
 
           {/* Submit button */}

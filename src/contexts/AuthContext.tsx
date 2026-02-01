@@ -11,6 +11,7 @@ interface Profile {
   avatar_url: string | null;
   banner_url: string | null;
   instance: string;
+  interests: string[];
   created_at: string;
   updated_at: string;
 }

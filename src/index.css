@@ -139,4 +139,9 @@
   .koa-gradient-subtle {
     background: linear-gradient(135deg, hsl(var(--koa-cream)) 0%, hsl(var(--background)) 100%);
   }
+
+  /* Safe area for mobile bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
