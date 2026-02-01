@@ -205,8 +205,8 @@ export default function ProfileEditPage() {
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3">
+      {/* Header - hidden on mobile since we have MobileHeader */}
+      <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"

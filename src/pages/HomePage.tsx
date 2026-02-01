@@ -82,8 +82,8 @@ export default function HomePage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <header className="sticky top-0 lg:top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
+      {/* Header - hidden on mobile since we have MobileHeader */}
+      <header className="hidden lg:block sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="flex items-center gap-3">
           <HomeIcon className="h-6 w-6 text-primary" />
           <h1 className="font-display text-xl font-bold text-foreground">Home</h1>
