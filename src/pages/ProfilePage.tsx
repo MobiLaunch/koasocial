@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export default function ProfilePage() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ followers: 0, following: 0 });
@@ -103,7 +104,10 @@ export default function ProfilePage() {
 
         {/* Action buttons */}
         <div className="absolute right-4 top-4 flex gap-2">
-          <Button className="rounded-full koa-gradient text-primary-foreground hover:opacity-90">
+          <Button
+            onClick={() => navigate('/profile/edit')}
+            className="rounded-full koa-gradient text-primary-foreground hover:opacity-90"
+          >
             Edit profile
           </Button>
         </div>

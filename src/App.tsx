@@ -11,6 +11,7 @@ import HomePage from "./pages/HomePage";
 import PublicPage from "./pages/PublicPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ProfilePage from "./pages/ProfilePage";
+import ProfileEditPage from "./pages/ProfileEditPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,7 @@ const AppRoutes = () => (
       <Route path="/home" element={<HomePage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile/edit" element={<ProfileEditPage />} />
     </Route>
 
     {/* Catch-all */}
