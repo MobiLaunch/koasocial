@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { PostCard } from '@/components/PostCard';
+import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, getUserInteractions, type Post } from '@/lib/api';
 import { formatCount, formatHandle } from '@/lib/formatters';
@@ -159,6 +160,13 @@ export default function ProfilePage() {
                 {interest}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Social Links */}
+        {(profile as any).social_links && Object.keys((profile as any).social_links).length > 0 && (
+          <div className="mt-4">
+            <SocialLinksDisplay links={(profile as any).social_links} compact />
           </div>
         )}
 

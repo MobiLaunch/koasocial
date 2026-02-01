@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/PostCard';
+import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, fetchProfile, getUserInteractions, toggleFollow, type Post, type Profile } from '@/lib/api';
 import { formatCount, formatHandle } from '@/lib/formatters';
@@ -212,6 +213,13 @@ export default function UserProfilePage() {
           <p className="mt-3 text-foreground leading-relaxed">
             {profile.bio}
           </p>
+        )}
+
+        {/* Social Links */}
+        {(profile as any).social_links && Object.keys((profile as any).social_links).length > 0 && (
+          <div className="mt-4">
+            <SocialLinksDisplay links={(profile as any).social_links} compact />
+          </div>
         )}
 
         {/* Meta info */}
