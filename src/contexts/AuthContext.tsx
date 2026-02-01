@@ -13,6 +13,8 @@ interface Profile {
   instance: string;
   interests: string[];
   social_links: Record<string, string>;
+  is_verified: boolean;
+  verification_tier: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/PostCard';
 import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, fetchProfile, getUserInteractions, toggleFollow, type Post, type Profile } from '@/lib/api';
 import { formatCount, formatHandle } from '@/lib/formatters';
@@ -200,8 +201,11 @@ export default function UserProfilePage() {
 
         {/* User info */}
         <div className="mt-2">
-          <h1 className="font-display text-2xl font-bold text-foreground">
+          <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             {profile.display_name}
+            {(profile as any).is_verified && (
+              <VerifiedBadge tier={(profile as any).verification_tier} size="lg" />
+            )}
           </h1>
           <p className="text-muted-foreground">
             {formatHandle(profile.username, profile.instance)}

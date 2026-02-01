@@ -15,6 +15,7 @@ import { toggleFavorite, toggleBoost, type Post, type Profile } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ParsedContent } from '@/lib/parseContent';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 interface PostCardProps {
   post: Post;
@@ -142,9 +143,12 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
         <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
-              <span className="font-semibold text-foreground truncate">
+            <div className="flex flex-wrap items-center gap-x-2 min-w-0">
+              <span className="font-semibold text-foreground truncate flex items-center gap-1">
                 {author.display_name}
+                {author.is_verified && (
+                  <VerifiedBadge tier={author.verification_tier} size="sm" />
+                )}
               </span>
               <span className="text-sm text-muted-foreground truncate">
                 {formatHandle(author.username, author.instance)}
