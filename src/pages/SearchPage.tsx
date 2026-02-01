@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Users, FileText, Loader2 } from 'lucide-react';
+import { Search, Users, FileText, Loader2, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getUserInteractions, type Post, type Profile } from '@/lib/api';
 import { formatHandle } from '@/lib/formatters';
 import { Link } from 'react-router-dom';
+import { RemoteAccountSearch } from '@/components/RemoteAccountSearch';
 
 export default function SearchPage() {
   const { profile: currentProfile } = useAuth();
@@ -144,7 +145,7 @@ export default function SearchPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search posts and users..."
+              placeholder={activeTab === 'fediverse' ? '@user@instance.domain' : 'Search posts and users...'}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10 rounded-xl h-12"
@@ -185,6 +186,13 @@ export default function SearchPage() {
                   {users.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="fediverse"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+            >
+              <Globe className="h-4 w-4" />
+              Fediverse
             </TabsTrigger>
           </TabsList>
 
@@ -240,6 +248,10 @@ export default function SearchPage() {
                 <p>No users found for "{query}"</p>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="fediverse" className="mt-0 p-4">
+            <RemoteAccountSearch />
           </TabsContent>
         </Tabs>
       ) : (
