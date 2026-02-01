@@ -14,6 +14,7 @@ import { formatRelativeTime, formatHandle, formatCount } from '@/lib/formatters'
 import { toggleFavorite, toggleBoost, type Post, type Profile } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { ParsedContent } from '@/lib/parseContent';
 
 interface PostCardProps {
   post: Post;
@@ -170,7 +171,7 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
 
           {/* Content */}
           <p className="mt-2 text-foreground whitespace-pre-wrap break-words leading-relaxed">
-            {post.content}
+            <ParsedContent content={post.content} />
           </p>
 
           {/* Post image */}

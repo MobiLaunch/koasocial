@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { ParsedContent } from '@/lib/parseContent';
 
 export interface FederatedPost {
   id: string;
@@ -95,7 +96,7 @@ export function FederatedPostCard({ post }: FederatedPostCardProps) {
 
           {/* Content */}
           <p className="mt-2 text-foreground whitespace-pre-wrap break-words leading-relaxed overflow-hidden [overflow-wrap:anywhere]">
-            {cleanContent}
+            <ParsedContent content={cleanContent} />
           </p>
 
           {/* Media attachments */}

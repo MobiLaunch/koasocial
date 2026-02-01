@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Logo } from '@/components/Logo';
 
 interface AppSidebarProps {
   onCompose: () => void;
@@ -52,12 +53,9 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
   const NavContent = () => (
     <>
       {/* Logo */}
-      <Link to="/home" className="flex items-center gap-3 px-4 py-3 mb-4">
-        <div className="h-10 w-10 rounded-2xl koa-gradient flex items-center justify-center">
-          <span className="text-xl">🐨</span>
-        </div>
-        <span className="font-display text-2xl font-bold text-foreground">koasocial</span>
-      </Link>
+      <div className="px-4 py-3 mb-4">
+        <Logo size="md" linkTo="/home" />
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-2">
