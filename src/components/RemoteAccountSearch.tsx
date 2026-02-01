@@ -34,23 +34,40 @@ export function RemoteAccountSearch({ onClose }: RemoteAccountSearchProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Validate and normalize handle format
+  const normalizeHandle = (input: string): string => {
+    let normalized = input.trim();
+    // Remove leading @ if present for consistency
+    if (normalized.startsWith('@')) {
+      normalized = normalized.slice(1);
+    }
+    return normalized;
+  };
+
+  const isValidHandle = (input: string): boolean => {
+    const normalized = normalizeHandle(input);
+    // Must have format username@instance.domain
+    const handleRegex = /^[a-zA-Z0-9_]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return handleRegex.test(normalized);
+  };
+
   const handleSearch = async () => {
     if (!handle.trim()) return;
+
+    const normalized = normalizeHandle(handle);
+    
+    if (!isValidHandle(handle)) {
+      setError('Please use the format @username@instance.domain (e.g., @Gargron@mastodon.social)');
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setActor(null);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('lookup-remote-actor', {
-        body: null,
-        headers: {},
-        method: 'GET',
-      });
-
-      // Use fetch directly since invoke doesn't support query params well
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-remote-actor?handle=${encodeURIComponent(handle)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-remote-actor?handle=${encodeURIComponent('@' + normalized)}`,
         {
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -165,9 +182,12 @@ export function RemoteAccountSearch({ onClose }: RemoteAccountSearchProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="@username@mastodon.social"
+            placeholder="username@mastodon.social"
             value={handle}
-            onChange={(e) => setHandle(e.target.value)}
+            onChange={(e) => {
+              setHandle(e.target.value);
+              setError(null);
+            }}
             onKeyPress={handleKeyPress}
             className="pl-9"
             autoFocus
@@ -177,6 +197,10 @@ export function RemoteAccountSearch({ onClose }: RemoteAccountSearchProps) {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
         </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Examples: <code className="bg-muted px-1 rounded">Gargron@mastodon.social</code>, <code className="bg-muted px-1 rounded">fosstodon@fosstodon.org</code>
+      </p>
 
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded-lg p-3">
