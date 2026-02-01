@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MessageCircle, Users, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Logo } from '@/components/Logo';
 
 const features = [
   {
@@ -32,12 +33,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl koa-gradient flex items-center justify-center">
-              <span className="text-xl">🐨</span>
-            </div>
-            <span className="font-display text-2xl font-bold text-foreground">koasocial</span>
-          </Link>
+          <Logo size="md" linkTo="/" />
 
           <div className="flex items-center gap-3">
             <Button variant="ghost" asChild>
@@ -138,12 +134,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
         <div className="container max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl koa-gradient flex items-center justify-center">
-              <span className="text-sm">🐨</span>
-            </div>
-            <span className="font-display font-bold">koasocial</span>
-          </div>
+          <Logo size="sm" />
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link to="/about" className="hover:text-foreground transition-colors">About</Link>

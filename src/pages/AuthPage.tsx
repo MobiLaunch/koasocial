@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
+import { Logo } from '@/components/Logo';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -109,11 +110,9 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md rounded-2xl koa-shadow">
         <CardHeader className="text-center">
-          <Link to="/" className="flex items-center justify-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center">
-              <span className="text-2xl">🐨</span>
-            </div>
-          </Link>
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" showIcon={true} linkTo="/" />
+          </div>
           <CardTitle className="font-display text-2xl">
             {isLogin ? 'Welcome back!' : 'Join koasocial'}
           </CardTitle>

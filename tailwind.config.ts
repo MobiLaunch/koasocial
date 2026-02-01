@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Nunito', 'sans-serif'],
         display: ['Quicksand', 'sans-serif'],
+        logo: ['League Spartan', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
