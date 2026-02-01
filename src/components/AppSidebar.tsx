@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Globe, Bell, User, Feather, Settings, Moon, Sun, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Globe, Bell, User, Feather, Settings, Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { currentUser, mockNotifications } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AppSidebarProps {
   onCompose: () => void;
@@ -19,14 +20,32 @@ const navItems = [
 
 export function AppSidebar({ onCompose }: AppSidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  useEffect(() => {
+    if (profile) {
+      // Fetch unread notification count
+      supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+        .eq('read', false)
+        .then(({ count }) => setUnreadCount(count || 0));
+    }
+  }, [profile]);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   const NavContent = () => (
@@ -59,7 +78,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
                 <item.icon className="h-6 w-6" />
                 {item.badge && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                    {unreadCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </div>
@@ -93,33 +112,35 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
           <span className="text-lg">{isDark ? 'Light mode' : 'Dark mode'}</span>
         </Button>
 
-        {/* Settings */}
-        <Link
-          to="/settings"
-          onClick={() => setIsMobileOpen(false)}
-          className="flex items-center gap-4 px-4 py-3 rounded-xl text-foreground hover:bg-accent transition-colors"
+        {/* Sign out */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-4 px-4 py-3 rounded-xl mb-2 text-foreground hover:bg-accent"
+          onClick={handleSignOut}
         >
-          <Settings className="h-6 w-6" />
-          <span className="text-lg">Settings</span>
-        </Link>
+          <LogOut className="h-6 w-6" />
+          <span className="text-lg">Sign out</span>
+        </Button>
 
         {/* User profile quick access */}
-        <Link
-          to="/profile"
-          onClick={() => setIsMobileOpen(false)}
-          className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl hover:bg-accent transition-colors"
-        >
-          <Avatar className="h-10 w-10 ring-2 ring-background">
-            <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {currentUser.displayName.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-foreground truncate">{currentUser.displayName}</div>
-            <div className="text-sm text-muted-foreground truncate">@{currentUser.username}</div>
-          </div>
-        </Link>
+        {profile && (
+          <Link
+            to="/profile"
+            onClick={() => setIsMobileOpen(false)}
+            className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl hover:bg-accent transition-colors"
+          >
+            <Avatar className="h-10 w-10 ring-2 ring-background">
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {profile.display_name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-foreground truncate">{profile.display_name}</div>
+              <div className="text-sm text-muted-foreground truncate">@{profile.username}</div>
+            </div>
+          </Link>
+        )}
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Users, Lock, Mail, Smile } from 'lucide-react';
+import { Globe, Users, Lock, Mail, Smile, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,14 +15,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { currentUser } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { createPost } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 type Visibility = 'public' | 'unlisted' | 'followers' | 'direct';
 
 interface ComposeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPost?: (content: string, visibility: Visibility) => void;
+  onPostCreated?: () => void;
 }
 
 const MAX_CHARS = 500;
@@ -34,23 +36,42 @@ const visibilityOptions = [
   { value: 'direct' as Visibility, label: 'Direct', icon: Mail, description: 'Only visible to mentioned users' },
 ];
 
-export function ComposeModal({ isOpen, onClose, onPost }: ComposeModalProps) {
+export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalProps) {
+  const { profile } = useAuth();
+  const { toast } = useToast();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('public');
+  const [isPosting, setIsPosting] = useState(false);
 
   const charsRemaining = MAX_CHARS - content.length;
   const isOverLimit = charsRemaining < 0;
   const isEmpty = content.trim().length === 0;
 
-  const handlePost = () => {
-    if (isEmpty || isOverLimit) return;
-    onPost?.(content, visibility);
-    setContent('');
-    onClose();
+  const handlePost = async () => {
+    if (isEmpty || isOverLimit || !profile) return;
+
+    setIsPosting(true);
+    try {
+      await createPost(profile.id, content, visibility);
+      toast({ title: 'Posted!', description: 'Your post is now live.' });
+      setContent('');
+      onPostCreated?.();
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create post',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const selectedVisibility = visibilityOptions.find(v => v.value === visibility)!;
   const VisibilityIcon = selectedVisibility.icon;
+
+  if (!profile) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,9 +83,9 @@ export function ComposeModal({ isOpen, onClose, onPost }: ComposeModalProps) {
         <div className="p-4">
           <div className="flex gap-3">
             <Avatar className="h-12 w-12 ring-2 ring-background">
-              <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
               <AvatarFallback className="bg-primary/10 text-primary">
-                {currentUser.displayName.charAt(0)}
+                {profile.display_name.charAt(0)}
               </AvatarFallback>
             </Avatar>
 
@@ -118,10 +139,10 @@ export function ComposeModal({ isOpen, onClose, onPost }: ComposeModalProps) {
             </span>
             <Button
               onClick={handlePost}
-              disabled={isEmpty || isOverLimit}
+              disabled={isEmpty || isOverLimit || isPosting}
               className="rounded-full px-6 koa-gradient text-primary-foreground hover:opacity-90"
             >
-              Post!
+              {isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Post!'}
             </Button>
           </div>
         </div>

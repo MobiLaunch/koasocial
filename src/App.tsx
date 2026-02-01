@@ -2,8 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/AuthPage";
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import PublicPage from "./pages/PublicPage";
@@ -13,27 +15,89 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Protected route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
+          <span className="text-2xl">🐨</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Redirect authenticated users away from auth pages
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
+          <span className="text-2xl">🐨</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+const AppRoutes = () => (
+  <Routes>
+    {/* Public routes */}
+    <Route path="/" element={<LandingPage />} />
+    <Route
+      path="/auth"
+      element={
+        <AuthRoute>
+          <AuthPage />
+        </AuthRoute>
+      }
+    />
+    <Route path="/public" element={<PublicPage />} />
+
+    {/* Protected routes */}
+    <Route
+      element={
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
+      }
+    >
+      <Route path="/home" element={<HomePage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+    </Route>
+
+    {/* Catch-all */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          {/* Landing page */}
-          <Route path="/" element={<LandingPage />} />
-
-          {/* Main app routes with sidebar layout */}
-          <Route element={<MainLayout />}>
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/public" element={<PublicPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Route>
-
-          {/* Catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
