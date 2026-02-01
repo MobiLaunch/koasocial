@@ -1,39 +1,16 @@
-import { TrendingUp, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockTrending, suggestedUsers } from '@/data/mockData';
-import { formatCount } from '@/lib/formatters';
+import { suggestedUsers } from '@/data/mockData';
+import { TrendingPosts } from '@/components/TrendingPosts';
 
 export function RightSidebar() {
   return (
     <aside className="hidden xl:block w-80 p-4 space-y-4">
-      {/* Trending */}
-      <Card className="rounded-2xl koa-shadow">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 font-display text-lg">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Trending now
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-3">
-            {mockTrending.map((topic) => (
-              <Link
-                key={topic.tag}
-                to={`/tag/${topic.tag.slice(1)}`}
-                className="block hover:bg-accent rounded-lg p-2 -mx-2 transition-colors"
-              >
-                <div className="font-semibold text-foreground">{topic.tag}</div>
-                <div className="text-sm text-muted-foreground">
-                  {formatCount(topic.posts)} posts
-                </div>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Federated Trending Posts */}
+      <TrendingPosts />
 
       {/* Suggested to follow */}
       <Card className="rounded-2xl koa-shadow">
