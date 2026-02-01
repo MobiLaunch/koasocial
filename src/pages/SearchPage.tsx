@@ -10,6 +10,7 @@ import { getUserInteractions, type Post, type Profile } from '@/lib/api';
 import { formatHandle } from '@/lib/formatters';
 import { Link } from 'react-router-dom';
 import { RemoteAccountSearch } from '@/components/RemoteAccountSearch';
+import { TrendingNews } from '@/components/TrendingNews';
 
 export default function SearchPage() {
   const { profile: currentProfile } = useAuth();
@@ -255,10 +256,8 @@ export default function SearchPage() {
           </TabsContent>
         </Tabs>
       ) : (
-        <div className="p-8 text-center text-muted-foreground">
-          <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Search for posts and people</p>
-          <p className="text-sm mt-1">Try searching for keywords, usernames, or display names</p>
+        <div className="p-4">
+          <TrendingNews />
         </div>
       )}
     </div>
