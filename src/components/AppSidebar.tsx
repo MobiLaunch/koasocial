@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, Menu, X, LogOut, MessageCircle } from 'lucide-react';
+import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,8 +16,7 @@ const navItems = [
   { icon: Home, label: 'Home', path: '/home' },
   { icon: Search, label: 'Search', path: '/search' },
   { icon: Globe, label: 'Public', path: '/public' },
-  { icon: Bell, label: 'Notifications', path: '/notifications', badge: 'notifications' },
-  { icon: MessageCircle, label: 'Messages', path: '/messages', badge: 'messages' },
+  { icon: Bell, label: 'Notifications', path: '/notifications', badge: true },
   { icon: User, label: 'Profile', path: '/profile' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
@@ -28,8 +27,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
   const { profile, signOut } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (profile) {
@@ -39,30 +37,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id)
         .eq('read', false)
-        .then(({ count }) => setUnreadNotifications(count || 0));
-
-      // Fetch unread message count
-      const fetchUnreadMessages = async () => {
-        const { data: participantData } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id, last_read_at')
-          .eq('profile_id', profile.id);
-
-        if (participantData?.length) {
-          let totalUnread = 0;
-          for (const p of participantData) {
-            const { count } = await supabase
-              .from('messages')
-              .select('*', { count: 'exact', head: true })
-              .eq('conversation_id', p.conversation_id)
-              .neq('sender_id', profile.id)
-              .gt('created_at', p.last_read_at || '1970-01-01');
-            totalUnread += count || 0;
-          }
-          setUnreadMessages(totalUnread);
-        }
-      };
-      fetchUnreadMessages();
+        .then(({ count }) => setUnreadCount(count || 0));
     }
   }, [profile]);
 
@@ -101,14 +76,9 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
             >
               <div className="relative">
                 <item.icon className="h-6 w-6" />
-                {item.badge === 'notifications' && unreadNotifications > 0 && (
+                {item.badge && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                  </span>
-                )}
-                {item.badge === 'messages' && unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </div>

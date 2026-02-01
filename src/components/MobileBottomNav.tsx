@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, Globe, Bell, User, Feather, MessageCircle } from 'lucide-react';
+import { Home, Search, Globe, Bell, User, Feather } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,49 +12,24 @@ interface MobileBottomNavProps {
 const navItems = [
   { icon: Home, label: 'Home', path: '/home' },
   { icon: Search, label: 'Search', path: '/search' },
-  { icon: MessageCircle, label: 'Messages', path: '/messages', badge: 'messages' },
-  { icon: Bell, label: 'Alerts', path: '/notifications', badge: 'notifications' },
+  { icon: Globe, label: 'Public', path: '/public' },
+  { icon: Bell, label: 'Alerts', path: '/notifications', badge: true },
   { icon: User, label: 'Profile', path: '/profile' },
 ];
 
 export function MobileBottomNav({ onCompose }: MobileBottomNavProps) {
   const location = useLocation();
   const { profile } = useAuth();
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (profile) {
-      // Fetch unread notifications
       supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id)
         .eq('read', false)
-        .then(({ count }) => setUnreadNotifications(count || 0));
-
-      // Fetch unread messages
-      const fetchUnreadMessages = async () => {
-        const { data: participantData } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id, last_read_at')
-          .eq('profile_id', profile.id);
-
-        if (participantData?.length) {
-          let totalUnread = 0;
-          for (const p of participantData) {
-            const { count } = await supabase
-              .from('messages')
-              .select('*', { count: 'exact', head: true })
-              .eq('conversation_id', p.conversation_id)
-              .neq('sender_id', profile.id)
-              .gt('created_at', p.last_read_at || '1970-01-01');
-            totalUnread += count || 0;
-          }
-          setUnreadMessages(totalUnread);
-        }
-      };
-      fetchUnreadMessages();
+        .then(({ count }) => setUnreadCount(count || 0));
     }
   }, [profile]);
 
@@ -89,14 +64,9 @@ export function MobileBottomNav({ onCompose }: MobileBottomNavProps) {
                     "h-6 w-6 transition-transform duration-200",
                     isActive && "scale-110"
                   )} />
-                  {item.badge === 'notifications' && unreadNotifications > 0 && (
+                  {item.badge && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </span>
-                  )}
-                  {item.badge === 'messages' && unreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </div>
