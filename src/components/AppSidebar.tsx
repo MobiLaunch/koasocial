@@ -148,42 +148,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
 
   return (
     <>
-      {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b">
-        <Link to="/home" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-xl koa-gradient flex items-center justify-center">
-            <span className="text-lg">🐨</span>
-          </div>
-          <span className="font-display text-xl font-bold">koasocial</span>
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-        >
-          {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </div>
-
-      {/* Mobile sidebar overlay */}
-      {isMobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      {/* Mobile sidebar */}
-      <aside
-        className={cn(
-          "lg:hidden fixed top-14 left-0 bottom-0 z-40 w-72 bg-sidebar border-r transform transition-transform duration-300 flex flex-col",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <NavContent />
-      </aside>
-
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar only - mobile uses MobileBottomNav */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r flex-col">
         <NavContent />
       </aside>
