@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { Newspaper, TrendingUp, Globe, DollarSign, AlertCircle, ExternalLink, Shield, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,25 +70,63 @@ function formatTimeAgo(dateString: string): string {
   return `${diffDays}d ago`;
 }
 
+// Clean text from HTML entities and encoding issues
+function cleanText(text: string): string {
+  if (!text) return '';
+  
+  // Decode HTML entities
+  const textarea = typeof document !== 'undefined' ? document.createElement('textarea') : null;
+  if (textarea) {
+    textarea.innerHTML = text;
+    text = textarea.value;
+  }
+  
+  // Remove any remaining HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+  
+  // Fix common encoding issues
+  text = text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return text;
+}
+
+const CredibilityMeterContent = forwardRef<HTMLDivElement, { score: number; credibility: string }>(
+  ({ score, credibility }, ref) => (
+    <div ref={ref} className="flex items-center gap-1.5 cursor-help shrink-0">
+      <Shield className={`h-3.5 w-3.5 shrink-0 ${credibilityColors[credibility]}`} />
+      <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+        <div 
+          className={`h-full rounded-full ${
+            score >= 85 ? 'bg-emerald-500' : 
+            score >= 70 ? 'bg-lime-500' : 
+            score >= 50 ? 'bg-amber-500' : 'bg-red-500'
+          }`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <span className="text-[10px] text-muted-foreground shrink-0">{score}</span>
+    </div>
+  )
+);
+CredibilityMeterContent.displayName = 'CredibilityMeterContent';
+
 function CredibilityMeter({ score, credibility }: { score: number; credibility: string }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-1.5 cursor-help">
-            <Shield className={`h-3.5 w-3.5 ${credibilityColors[credibility]}`} />
-            <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${
-                  score >= 85 ? 'bg-emerald-500' : 
-                  score >= 70 ? 'bg-lime-500' : 
-                  score >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${score}%` }}
-              />
-            </div>
-            <span className="text-[10px] text-muted-foreground">{score}</span>
-          </div>
+          <CredibilityMeterContent score={score} credibility={credibility} />
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           <p className="font-medium">Truthmeter: {score}/100</p>
@@ -106,9 +144,11 @@ function BiasLabel({ bias, biasLabel }: { bias: string; biasLabel: string }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${biasColors[bias]}`}>
-            {biasLabel}
-          </Badge>
+          <span>
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${biasColors[bias]}`}>
+              {biasLabel}
+            </Badge>
+          </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           <p className="font-medium">Political Bias: {biasLabel}</p>
@@ -122,30 +162,33 @@ function BiasLabel({ bias, biasLabel }: { bias: string; biasLabel: string }) {
 }
 
 function NewsCard({ item }: { item: NewsItem }) {
+  const cleanTitle = cleanText(item.title);
+  const cleanDescription = cleanText(item.description);
+  
   return (
     <a 
       href={item.link} 
       target="_blank" 
       rel="noopener noreferrer"
-      className="block p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
+      className="block p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-primary">{item.source.name}</span>
+      <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="text-xs font-medium text-primary shrink-0">{item.source.name}</span>
           <BiasLabel bias={item.source.bias} biasLabel={item.source.biasLabel} />
           <CredibilityMeter score={item.source.credibilityScore} credibility={item.source.credibility} />
         </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
+        <div className="flex items-center gap-1 text-muted-foreground shrink-0">
           <span className="text-[10px]">{formatTimeAgo(item.pubDate)}</span>
           <ExternalLink className="h-3 w-3" />
         </div>
       </div>
-      <h4 className="font-medium text-sm leading-snug mb-1 line-clamp-2">
-        {item.title}
+      <h4 className="font-medium text-sm leading-snug mb-1 line-clamp-2 break-words">
+        {cleanTitle}
       </h4>
-      {item.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {item.description}
+      {cleanDescription && (
+        <p className="text-xs text-muted-foreground line-clamp-2 break-words">
+          {cleanDescription}
         </p>
       )}
     </a>
@@ -185,7 +228,7 @@ export function TrendingNews() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Newspaper className="h-4 w-4" />
@@ -201,7 +244,7 @@ export function TrendingNews() {
 
   if (error || !news) {
     return (
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Newspaper className="h-4 w-4" />
@@ -226,7 +269,7 @@ export function TrendingNews() {
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
@@ -236,7 +279,7 @@ export function TrendingNews() {
           Sources rated for bias & factual accuracy
         </p>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full h-8 mb-2">
             <TabsTrigger value="all" className="flex-1 text-xs gap-1 h-7">
@@ -253,7 +296,7 @@ export function TrendingNews() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="space-y-1 max-h-[400px] overflow-y-auto">
+          <div className="space-y-1 max-h-[400px] overflow-y-auto overflow-x-hidden">
             {getNewsForTab().length > 0 ? (
               getNewsForTab().map((item) => (
                 <NewsCard key={item.id} item={item} />
@@ -271,9 +314,11 @@ export function TrendingNews() {
           <p className="text-[10px] text-muted-foreground mb-2">Bias Scale:</p>
           <div className="flex flex-wrap gap-1.5">
             {Object.entries(biasColors).map(([bias, colors]) => (
-              <Badge key={bias} variant="outline" className={`text-[9px] px-1.5 py-0 ${colors}`}>
-                {bias.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}
-              </Badge>
+              <span key={bias}>
+                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${colors}`}>
+                  {bias.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}
+                </Badge>
+              </span>
             ))}
           </div>
         </div>
