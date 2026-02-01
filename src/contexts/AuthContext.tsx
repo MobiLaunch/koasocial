@@ -47,6 +47,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Profile;
   };
 
+  const createProfileForOAuthUser = async (user: User): Promise<Profile | null> => {
+    const metadata = user.user_metadata;
+    const email = user.email || '';
+    
+    // Generate username from email or name
+    let username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    
+    // Ensure unique username by checking and appending numbers if needed
+    let attempts = 0;
+    let finalUsername = username;
+    while (attempts < 5) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', finalUsername)
+        .single();
+      
+      if (!existing) break;
+      finalUsername = `${username}_${Math.floor(Math.random() * 1000)}`;
+      attempts++;
+    }
+
+    const displayName = metadata?.full_name || metadata?.name || email.split('@')[0];
+    const avatarUrl = metadata?.avatar_url || metadata?.picture || null;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: user.id,
+        username: finalUsername,
+        display_name: displayName,
+        avatar_url: avatarUrl,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating profile for OAuth user:', error);
+      return null;
+    }
+
+    return data as Profile;
+  };
+
+  const fetchOrCreateProfile = async (user: User): Promise<Profile | null> => {
+    let profileData = await fetchProfile(user.id);
+    
+    // If no profile exists (OAuth user), create one
+    if (!profileData) {
+      profileData = await createProfileForOAuthUser(user);
+    }
+    
+    return profileData;
+  };
+
   const refreshProfile = async () => {
     if (user) {
       const profileData = await fetchProfile(user.id);
@@ -71,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Use setTimeout to avoid Supabase client deadlock
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await fetchOrCreateProfile(session.user);
             setProfile(profileData);
             setLoading(false);
           }, 0);
@@ -88,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id).then(profileData => {
+        fetchOrCreateProfile(session.user).then(profileData => {
           setProfile(profileData);
           setLoading(false);
         });
