@@ -72,9 +72,8 @@ const AppRoutes = () => (
         </AuthRoute>
       }
     />
-    <Route path="/public" element={<PublicPage />} />
 
-    {/* Protected routes */}
+    {/* Protected routes with sidebar */}
     <Route
       element={
         <ProtectedRoute>
@@ -83,6 +82,7 @@ const AppRoutes = () => (
       }
     >
       <Route path="/home" element={<HomePage />} />
+      <Route path="/public" element={<PublicPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
