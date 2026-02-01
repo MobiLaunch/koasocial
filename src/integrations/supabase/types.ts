@@ -374,6 +374,7 @@ export type Database = {
           id: string
           instance: string | null
           interests: string[] | null
+          social_links: Json | null
           updated_at: string
           user_id: string
           username: string
@@ -387,6 +388,7 @@ export type Database = {
           id?: string
           instance?: string | null
           interests?: string[] | null
+          social_links?: Json | null
           updated_at?: string
           user_id: string
           username: string
@@ -400,6 +402,7 @@ export type Database = {
           id?: string
           instance?: string | null
           interests?: string[] | null
+          social_links?: Json | null
           updated_at?: string
           user_id?: string
           username?: string

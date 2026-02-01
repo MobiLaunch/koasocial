@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Loader2, Sparkles, AtSign, User, FileText, Check, AlertCircle, Heart } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Sparkles, AtSign, User, FileText, Check, AlertCircle, Heart, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { InterestsPicker } from '@/components/InterestsPicker';
+import { SocialLinksEditor } from '@/components/SocialLinksEditor';
 
 export default function ProfileEditPage() {
   const { profile, user, refreshProfile } = useAuth();
@@ -26,6 +27,7 @@ export default function ProfileEditPage() {
     bio: profile?.bio || '',
   });
   const [interests, setInterests] = useState<string[]>((profile as any)?.interests || []);
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>((profile as any)?.social_links || {});
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(profile?.banner_url || null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -169,6 +171,7 @@ export default function ProfileEditPage() {
           avatar_url: avatarUrl,
           banner_url: bannerUrl,
           interests: interests,
+          social_links: socialLinks,
         })
         .eq('id', profile.id);
 
@@ -384,6 +387,22 @@ export default function ProfileEditPage() {
               interests={interests}
               onChange={setInterests}
               maxInterests={10}
+            />
+          </div>
+
+          {/* Social Links */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-semibold">
+              <LinkIcon className="h-4 w-4 text-primary" />
+              Social Links
+            </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Link your profiles from Threads, Bluesky, Instagram, and more
+            </p>
+            <SocialLinksEditor
+              links={socialLinks}
+              onChange={setSocialLinks}
+              maxLinks={5}
             />
           </div>
 

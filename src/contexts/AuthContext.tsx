@@ -12,6 +12,7 @@ interface Profile {
   banner_url: string | null;
   instance: string;
   interests: string[];
+  social_links: Record<string, string>;
   created_at: string;
   updated_at: string;
 }

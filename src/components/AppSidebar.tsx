@@ -18,6 +18,7 @@ const navItems = [
   { icon: Globe, label: 'Public', path: '/public' },
   { icon: Bell, label: 'Notifications', path: '/notifications', badge: true },
   { icon: User, label: 'Profile', path: '/profile' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
 export function AppSidebar({ onCompose }: AppSidebarProps) {
