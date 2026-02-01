@@ -374,10 +374,12 @@ export type Database = {
           id: string
           instance: string | null
           interests: string[] | null
+          is_verified: boolean | null
           social_links: Json | null
           updated_at: string
           user_id: string
           username: string
+          verification_tier: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -388,10 +390,12 @@ export type Database = {
           id?: string
           instance?: string | null
           interests?: string[] | null
+          is_verified?: boolean | null
           social_links?: Json | null
           updated_at?: string
           user_id: string
           username: string
+          verification_tier?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -402,10 +406,12 @@ export type Database = {
           id?: string
           instance?: string | null
           interests?: string[] | null
+          is_verified?: boolean | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string
           username?: string
+          verification_tier?: string | null
         }
         Relationships: []
       }
@@ -468,6 +474,47 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      verification_requests: {
+        Row: {
+          created_at: string
+          id: string
+          links: string[] | null
+          profile_id: string
+          reason: string
+          reviewed_at: string | null
+          reviewer_notes: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          links?: string[] | null
+          profile_id: string
+          reason: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          links?: string[] | null
+          profile_id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
