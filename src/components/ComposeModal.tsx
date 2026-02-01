@@ -110,14 +110,14 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('avatars') // Reusing avatars bucket for simplicity
-        .upload(`posts/${fileName}`, file, { upsert: true });
+        .from('posts')
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(`posts/${fileName}`);
+        .from('posts')
+        .getPublicUrl(fileName);
 
       return publicUrl;
     } catch (error: any) {

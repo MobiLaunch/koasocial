@@ -134,9 +134,9 @@ export default function SearchPage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="px-4 py-3">
+      {/* Search header */}
+      <div className="sticky top-0 lg:top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="hidden lg:block px-4 py-3">
           <h1 className="font-display text-xl font-bold">Search</h1>
         </div>
         
