@@ -41,12 +41,12 @@ export function FederatedPostCard({ post }: FederatedPostCardProps) {
   const cleanContent = stripHtml(post.content);
 
   return (
-    <Card className="p-4 hover:bg-accent/30 transition-colors duration-200 border-0 border-b rounded-none last:border-b-0">
+    <Card className="p-4 hover:bg-accent/30 transition-colors duration-200 border-0 border-b rounded-none last:border-b-0 overflow-hidden">
       {/* Federated indicator */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 ml-12">
-        <Globe className="h-4 w-4 text-primary" />
-        <span>From the Fediverse</span>
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 ml-12 overflow-hidden">
+        <Globe className="h-4 w-4 text-primary flex-shrink-0" />
+        <span className="truncate">From the Fediverse</span>
+        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex-shrink-0">
           {post.instance}
         </Badge>
       </div>
@@ -94,7 +94,7 @@ export function FederatedPostCard({ post }: FederatedPostCardProps) {
           </div>
 
           {/* Content */}
-          <p className="mt-2 text-foreground whitespace-pre-wrap break-words leading-relaxed">
+          <p className="mt-2 text-foreground whitespace-pre-wrap break-words leading-relaxed overflow-hidden [overflow-wrap:anywhere]">
             {cleanContent}
           </p>
 
@@ -162,7 +162,7 @@ export function FederatedPostCard({ post }: FederatedPostCardProps) {
               href={post.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors truncate hidden sm:inline"
             >
               View on {post.instance}
             </a>
