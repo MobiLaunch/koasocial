@@ -1,20 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Globe, Loader2 } from 'lucide-react';
+import { Globe, Loader2, RefreshCw } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
+import { FederatedPostCard, type FederatedPost } from '@/components/FederatedPostCard';
 import { fetchPosts, getUserInteractions, type Post } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+type MixedPost = 
+  | { type: 'local'; data: Post; sortDate: Date }
+  | { type: 'federated'; data: FederatedPost; sortDate: Date };
 
 export default function PublicPage() {
   const { profile } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [federatedPosts, setFederatedPosts] = useState<FederatedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [federatedLoading, setFederatedLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'mixed' | 'local' | 'fediverse'>('mixed');
 
-  const loadPosts = async () => {
-    setLoading(true);
+  const loadLocalPosts = async () => {
     try {
       const fetchedPosts = await fetchPosts({ visibility: 'public' });
       
-      // Get user interactions if logged in
       if (profile && fetchedPosts.length > 0) {
         const postIds = fetchedPosts.map(p => p.id);
         const interactions = await getUserInteractions(profile.id, postIds);
@@ -30,27 +39,89 @@ export default function PublicPage() {
         setPosts(fetchedPosts);
       }
     } catch (error) {
-      console.error('Error loading posts:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading local posts:', error);
     }
   };
 
+  const loadFederatedPosts = async () => {
+    setFederatedLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-trending');
+      
+      if (error) throw error;
+      
+      if (data?.success && data.posts) {
+        setFederatedPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Error loading federated posts:', error);
+    } finally {
+      setFederatedLoading(false);
+    }
+  };
+
+  const loadAllPosts = async () => {
+    setLoading(true);
+    await Promise.all([loadLocalPosts(), loadFederatedPosts()]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    loadPosts();
+    loadAllPosts();
   }, [profile]);
+
+  // Merge and sort posts by date
+  const getMixedPosts = (): MixedPost[] => {
+    const mixed: MixedPost[] = [
+      ...posts.map(p => ({ 
+        type: 'local' as const, 
+        data: p, 
+        sortDate: new Date(p.created_at) 
+      })),
+      ...federatedPosts.map(p => ({ 
+        type: 'federated' as const, 
+        data: p, 
+        sortDate: new Date(p.created_at) 
+      })),
+    ];
+    
+    return mixed.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
+  };
+
+  const mixedPosts = getMixedPosts();
 
   return (
     <div className="animate-fade-in">
       {/* Header */}
       <header className="sticky top-0 lg:top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Globe className="h-6 w-6 text-primary" />
-          <h1 className="font-display text-xl font-bold text-foreground">Public Timeline</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <Globe className="h-6 w-6 text-primary" />
+              <h1 className="font-display text-xl font-bold text-foreground">Public Timeline</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Posts from across the fediverse
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={loadAllPosts}
+            disabled={loading || federatedLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${(loading || federatedLoading) ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Posts from across the fediverse
-        </p>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mt-3">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="mixed">Mixed</TabsTrigger>
+            <TabsTrigger value="local">Local</TabsTrigger>
+            <TabsTrigger value="fediverse">Fediverse</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </header>
 
       {/* Timeline */}
@@ -58,25 +129,82 @@ export default function PublicPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : posts.length > 0 ? (
-        <div className="divide-y divide-border">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onInteractionChange={loadPosts}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="p-8 text-center text-muted-foreground">
-          <p className="text-lg mb-2">No public posts yet!</p>
-          <p>Be the first to share something with the world 🌍</p>
-        </div>
+        <>
+          {/* Mixed Feed */}
+          {activeTab === 'mixed' && (
+            mixedPosts.length > 0 ? (
+              <div className="divide-y divide-border">
+                {mixedPosts.map((item) => (
+                  item.type === 'local' ? (
+                    <PostCard
+                      key={`local-${item.data.id}`}
+                      post={item.data}
+                      onInteractionChange={loadLocalPosts}
+                    />
+                  ) : (
+                    <FederatedPostCard
+                      key={`fed-${item.data.id}`}
+                      post={item.data}
+                    />
+                  )
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-lg mb-2">No posts yet!</p>
+                <p>Be the first to share something with the world 🌍</p>
+              </div>
+            )
+          )}
+
+          {/* Local Only */}
+          {activeTab === 'local' && (
+            posts.length > 0 ? (
+              <div className="divide-y divide-border">
+                {posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onInteractionChange={loadLocalPosts}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-lg mb-2">No local posts yet!</p>
+                <p>Be the first to share something 🐨</p>
+              </div>
+            )
+          )}
+
+          {/* Fediverse Only */}
+          {activeTab === 'fediverse' && (
+            federatedLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : federatedPosts.length > 0 ? (
+              <div className="divide-y divide-border">
+                {federatedPosts.map((post) => (
+                  <FederatedPostCard
+                    key={post.id}
+                    post={post}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-lg mb-2">No federated posts available</p>
+                <p>Try refreshing to fetch trending posts ✨</p>
+              </div>
+            )
+          )}
+        </>
       )}
 
       {/* Load more indicator */}
-      {posts.length > 0 && (
+      {mixedPosts.length > 0 && activeTab === 'mixed' && (
         <div className="p-8 text-center text-muted-foreground">
           <p>Keep scrolling for more! ✨</p>
         </div>
