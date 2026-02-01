@@ -41,10 +41,10 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-3">
             <Button variant="ghost" asChild>
-              <Link to="/home">Sign in</Link>
+              <Link to="/auth">Sign in</Link>
             </Button>
             <Button className="rounded-full koa-gradient text-primary-foreground hover:opacity-90" asChild>
-              <Link to="/home">Get started</Link>
+              <Link to="/auth">Get started</Link>
             </Button>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="rounded-full px-8 h-14 text-lg koa-gradient text-primary-foreground hover:opacity-90 koa-shadow-lg" asChild>
-              <Link to="/home">
+              <Link to="/auth">
                 Join koasocial
                 <span className="ml-2">→</span>
               </Link>
@@ -126,7 +126,7 @@ export default function LandingPage() {
               className="rounded-full px-8 h-14 text-lg bg-background text-foreground hover:bg-background/90"
               asChild
             >
-              <Link to="/home">
+              <Link to="/auth">
                 Create your account
                 <span className="ml-2">🐨</span>
               </Link>

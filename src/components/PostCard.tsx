@@ -11,50 +11,77 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime, formatHandle, formatCount } from '@/lib/formatters';
-import type { Post } from '@/data/mockData';
+import { toggleFavorite, toggleBoost, type Post, type Profile } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostCardProps {
   post: Post;
   onReply?: (post: Post) => void;
-  onBoost?: (post: Post) => void;
-  onFavorite?: (post: Post) => void;
-  onShare?: (post: Post) => void;
+  onInteractionChange?: () => void;
 }
 
-export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCardProps) {
-  const [isFavorited, setIsFavorited] = useState(post.isFavorited);
-  const [isBoosted, setIsBoosted] = useState(post.isBoosted);
-  const [favoritesCount, setFavoritesCount] = useState(post.favoritesCount);
-  const [boostsCount, setBoostsCount] = useState(post.boostsCount);
+export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) {
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const [isFavorited, setIsFavorited] = useState(post.is_favorited || false);
+  const [isBoosted, setIsBoosted] = useState(post.is_boosted || false);
+  const [favoritesCount, setFavoritesCount] = useState(post.favorites_count || 0);
+  const [boostsCount, setBoostsCount] = useState(post.boosts_count || 0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleFavorite = () => {
-    setIsFavorited(!isFavorited);
-    setFavoritesCount(prev => isFavorited ? prev - 1 : prev + 1);
-    onFavorite?.(post);
+  const author = post.author as Profile;
+
+  const handleFavorite = async () => {
+    if (!profile || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      await toggleFavorite(profile.id, post.id, isFavorited);
+      setIsFavorited(!isFavorited);
+      setFavoritesCount(prev => isFavorited ? prev - 1 : prev + 1);
+      onInteractionChange?.();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleBoost = () => {
-    setIsBoosted(!isBoosted);
-    setBoostsCount(prev => isBoosted ? prev - 1 : prev + 1);
-    onBoost?.(post);
+  const handleBoost = async () => {
+    if (!profile || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      await toggleBoost(profile.id, post.id, isBoosted);
+      setIsBoosted(!isBoosted);
+      setBoostsCount(prev => isBoosted ? prev - 1 : prev + 1);
+      onInteractionChange?.();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (!author) return null;
 
   return (
     <Card className="p-4 hover:bg-accent/30 transition-colors duration-200 border-0 border-b rounded-none last:border-b-0">
       {/* Boost indicator */}
-      {post.boostedBy && (
+      {post.boosted_by && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 ml-12">
           <Repeat2 className="h-4 w-4" />
-          <span>{post.boostedBy.displayName} boosted</span>
+          <span>{post.boosted_by.display_name} boosted</span>
         </div>
       )}
 
       <div className="flex gap-3">
         {/* Avatar */}
         <Avatar className="h-12 w-12 ring-2 ring-background">
-          <AvatarImage src={post.author.avatar} alt={post.author.displayName} />
+          <AvatarImage src={author.avatar_url || undefined} alt={author.display_name} />
           <AvatarFallback className="bg-primary/10 text-primary">
-            {post.author.displayName.charAt(0)}
+            {author.display_name.charAt(0)}
           </AvatarFallback>
         </Avatar>
 
@@ -63,14 +90,14 @@ export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCa
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
               <span className="font-semibold text-foreground truncate">
-                {post.author.displayName}
+                {author.display_name}
               </span>
               <span className="text-sm text-muted-foreground truncate">
-                {formatHandle(post.author.username, post.author.instance)}
+                {formatHandle(author.username, author.instance)}
               </span>
               <span className="text-sm text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {formatRelativeTime(post.createdAt)}
+                {formatRelativeTime(post.created_at)}
               </span>
             </div>
 
@@ -103,7 +130,7 @@ export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCa
               onClick={() => onReply?.(post)}
             >
               <MessageCircle className="h-4 w-4" />
-              <span className="text-sm">{formatCount(post.repliesCount)}</span>
+              <span className="text-sm">{formatCount(post.replies_count || 0)}</span>
             </Button>
 
             {/* Boost */}
@@ -115,6 +142,7 @@ export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCa
                 isBoosted ? "text-koa-boost" : "text-muted-foreground"
               )}
               onClick={handleBoost}
+              disabled={!profile || isLoading}
             >
               <Repeat2 className={cn("h-4 w-4", isBoosted && "fill-current")} />
               <span className="text-sm">{formatCount(boostsCount)}</span>
@@ -129,6 +157,7 @@ export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCa
                 isFavorited ? "text-primary" : "text-muted-foreground"
               )}
               onClick={handleFavorite}
+              disabled={!profile || isLoading}
             >
               <Heart className={cn("h-4 w-4 transition-transform", isFavorited && "fill-current animate-heart-pop")} />
               <span className="text-sm">{formatCount(favoritesCount)}</span>
@@ -139,7 +168,6 @@ export function PostCard({ post, onReply, onBoost, onFavorite, onShare }: PostCa
               variant="ghost"
               size="sm"
               className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-              onClick={() => onShare?.(post)}
             >
               <Share className="h-4 w-4" />
             </Button>

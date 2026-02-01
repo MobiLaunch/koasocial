@@ -6,6 +6,12 @@ import { ComposeModal } from '@/components/ComposeModal';
 
 export default function MainLayout() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handlePostCreated = () => {
+    // Trigger refresh of timeline
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -17,7 +23,7 @@ export default function MainLayout() {
           <main className="flex-1 min-h-screen border-r max-w-2xl">
             {/* Mobile header spacer */}
             <div className="h-14 lg:hidden" />
-            <Outlet />
+            <Outlet key={refreshKey} />
           </main>
 
           {/* Right sidebar */}
@@ -28,6 +34,7 @@ export default function MainLayout() {
       <ComposeModal
         isOpen={isComposeOpen}
         onClose={() => setIsComposeOpen(false)}
+        onPostCreated={handlePostCreated}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/formatters';
-import type { Notification } from '@/data/mockData';
+import type { Notification, Profile, Post } from '@/lib/api';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -15,37 +15,41 @@ const notificationConfig = {
     icon: UserPlus,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    getText: (user: string) => `${user} followed you`,
+    getText: () => 'followed you',
   },
   favorite: {
     icon: Heart,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    getText: (user: string) => `${user} favorited your post`,
+    getText: () => 'favorited your post',
   },
   boost: {
     icon: Repeat2,
     color: 'text-koa-boost',
     bgColor: 'bg-koa-boost/10',
-    getText: (user: string) => `${user} boosted your post`,
+    getText: () => 'boosted your post',
   },
   reply: {
     icon: MessageCircle,
     color: 'text-koa-success',
     bgColor: 'bg-koa-success/10',
-    getText: (user: string) => `${user} replied to your post`,
+    getText: () => 'replied to your post',
   },
   mention: {
     icon: AtSign,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    getText: (user: string) => `${user} mentioned you`,
+    getText: () => 'mentioned you',
   },
 };
 
 export function NotificationItem({ notification }: NotificationItemProps) {
   const config = notificationConfig[notification.type];
   const Icon = config.icon;
+  const actor = notification.actor as Profile | undefined;
+  const post = notification.post as Post | undefined;
+
+  if (!actor) return null;
 
   return (
     <Card
@@ -61,11 +65,11 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-3">
-            <Link to={`/user/${notification.user.username}`}>
+            <Link to={`/user/${actor.username}`}>
               <Avatar className="h-10 w-10 ring-2 ring-background">
-                <AvatarImage src={notification.user.avatar} alt={notification.user.displayName} />
+                <AvatarImage src={actor.avatar_url || undefined} alt={actor.display_name} />
                 <AvatarFallback className="bg-primary/10 text-primary">
-                  {notification.user.displayName.charAt(0)}
+                  {actor.display_name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
             </Link>
@@ -73,21 +77,21 @@ export function NotificationItem({ notification }: NotificationItemProps) {
             <div className="flex-1 min-w-0">
               <p className="text-foreground">
                 <Link
-                  to={`/user/${notification.user.username}`}
+                  to={`/user/${actor.username}`}
                   className="font-semibold hover:underline"
                 >
-                  {notification.user.displayName}
+                  {actor.display_name}
                 </Link>
                 {' '}
-                {config.getText('').replace(/^.+ /, '')}
+                {config.getText()}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {formatRelativeTime(notification.createdAt)}
+                {formatRelativeTime(notification.created_at)}
               </p>
 
-              {notification.post && (
+              {post && (
                 <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                  {notification.post.content}
+                  {post.content}
                 </p>
               )}
             </div>
