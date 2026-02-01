@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Globe, Users, Lock, Mail, Smile, Loader2, Image, X } from 'lucide-react';
+import { Globe, Users, Lock, Mail, Loader2, Image, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createPost } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { EmojiPicker } from '@/components/EmojiPicker';
 
 type Visibility = 'public' | 'unlisted' | 'followers' | 'direct';
 
@@ -47,6 +48,7 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const charsRemaining = MAX_CHARS - content.length;
   const isOverLimit = charsRemaining < 0;
@@ -79,6 +81,23 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newContent = content.slice(0, start) + emoji + content.slice(end);
+      setContent(newContent);
+      // Set cursor position after emoji
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+      }, 0);
+    } else {
+      setContent(content + emoji);
     }
   };
 
@@ -170,6 +189,7 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
 
             <div className="flex-1 space-y-3">
               <Textarea
+                ref={textareaRef}
                 placeholder="What's on your mind?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -216,10 +236,8 @@ export function ComposeModal({ isOpen, onClose, onPostCreated }: ComposeModalPro
               <Image className="h-5 w-5" />
             </Button>
 
-            {/* Emoji picker placeholder */}
-            <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10">
-              <Smile className="h-5 w-5" />
-            </Button>
+            {/* Emoji picker */}
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
             {/* Visibility selector */}
             <DropdownMenu>

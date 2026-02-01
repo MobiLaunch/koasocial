@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { ComposeModal } from '@/components/ComposeModal';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { MobileHeader } from '@/components/MobileHeader';
 
 export default function MainLayout() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -16,9 +17,12 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile header with centered logo */}
+      <MobileHeader />
+      
       <AppSidebar onCompose={() => setIsComposeOpen(true)} />
 
-      <div className="lg:ml-72 min-h-screen">
+      <div className="lg:ml-72 min-h-screen pt-14 lg:pt-0">
         <div className="flex">
           {/* Main content */}
           <main className="flex-1 min-h-screen border-r max-w-2xl pb-20 lg:pb-0">
