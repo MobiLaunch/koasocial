@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,6 +21,20 @@ interface PostCardProps {
   onInteractionChange?: () => void;
 }
 
+// Floating particle component for visual feedback
+function FloatingParticle({ emoji, onComplete }: { emoji: string; onComplete: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 600);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <span className="absolute -top-2 left-1/2 -translate-x-1/2 animate-float-up pointer-events-none text-lg">
+      {emoji}
+    </span>
+  );
+}
+
 export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -29,19 +43,42 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
   const [favoritesCount, setFavoritesCount] = useState(post.favorites_count || 0);
   const [boostsCount, setBoostsCount] = useState(post.boosts_count || 0);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Animation states
+  const [heartAnimating, setHeartAnimating] = useState(false);
+  const [boostAnimating, setBoostAnimating] = useState(false);
+  const [showHeartParticle, setShowHeartParticle] = useState(false);
+  const [showBoostParticle, setShowBoostParticle] = useState(false);
+  const [countBump, setCountBump] = useState<'heart' | 'boost' | null>(null);
 
   const author = post.author as Profile;
 
   const handleFavorite = async () => {
     if (!profile || isLoading) return;
 
+    // Optimistic UI update with animation
+    const newFavorited = !isFavorited;
+    setIsFavorited(newFavorited);
+    setFavoritesCount(prev => newFavorited ? prev + 1 : prev - 1);
+    
+    if (newFavorited) {
+      setHeartAnimating(true);
+      setShowHeartParticle(true);
+      setCountBump('heart');
+      setTimeout(() => {
+        setHeartAnimating(false);
+        setCountBump(null);
+      }, 400);
+    }
+
     setIsLoading(true);
     try {
-      await toggleFavorite(profile.id, post.id, isFavorited);
-      setIsFavorited(!isFavorited);
-      setFavoritesCount(prev => isFavorited ? prev - 1 : prev + 1);
+      await toggleFavorite(profile.id, post.id, !newFavorited);
       onInteractionChange?.();
     } catch (error: any) {
+      // Revert on error
+      setIsFavorited(!newFavorited);
+      setFavoritesCount(prev => newFavorited ? prev - 1 : prev + 1);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
@@ -51,13 +88,29 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
   const handleBoost = async () => {
     if (!profile || isLoading) return;
 
+    // Optimistic UI update with animation
+    const newBoosted = !isBoosted;
+    setIsBoosted(newBoosted);
+    setBoostsCount(prev => newBoosted ? prev + 1 : prev - 1);
+    
+    if (newBoosted) {
+      setBoostAnimating(true);
+      setShowBoostParticle(true);
+      setCountBump('boost');
+      setTimeout(() => {
+        setBoostAnimating(false);
+        setCountBump(null);
+      }, 500);
+    }
+
     setIsLoading(true);
     try {
-      await toggleBoost(profile.id, post.id, isBoosted);
-      setIsBoosted(!isBoosted);
-      setBoostsCount(prev => isBoosted ? prev - 1 : prev + 1);
+      await toggleBoost(profile.id, post.id, !newBoosted);
       onInteractionChange?.();
     } catch (error: any) {
+      // Revert on error
+      setIsBoosted(!newBoosted);
+      setBoostsCount(prev => newBoosted ? prev - 1 : prev + 1);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
@@ -126,10 +179,10 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              className="gap-2 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 group"
               onClick={() => onReply?.(post)}
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle className="h-4 w-4 group-hover:animate-wiggle" />
               <span className="text-sm">{formatCount(post.replies_count || 0)}</span>
             </Button>
 
@@ -138,14 +191,35 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
               variant="ghost"
               size="sm"
               className={cn(
-                "gap-2 hover:text-koa-boost hover:bg-koa-boost/10",
-                isBoosted ? "text-koa-boost" : "text-muted-foreground"
+                "gap-2 transition-all duration-200 group relative",
+                isBoosted 
+                  ? "text-koa-boost hover:text-koa-boost hover:bg-koa-boost/10" 
+                  : "text-muted-foreground hover:text-koa-boost hover:bg-koa-boost/10"
               )}
               onClick={handleBoost}
               disabled={!profile || isLoading}
             >
-              <Repeat2 className={cn("h-4 w-4", isBoosted && "fill-current")} />
-              <span className="text-sm">{formatCount(boostsCount)}</span>
+              {showBoostParticle && (
+                <FloatingParticle emoji="🔄" onComplete={() => setShowBoostParticle(false)} />
+              )}
+              <div className="relative">
+                <Repeat2 
+                  className={cn(
+                    "h-4 w-4 transition-all duration-200",
+                    boostAnimating && "animate-boost-spin",
+                    isBoosted && "fill-current"
+                  )} 
+                />
+                {isBoosted && !boostAnimating && (
+                  <span className="absolute inset-0 animate-ping-once rounded-full bg-koa-boost/30" />
+                )}
+              </div>
+              <span className={cn(
+                "text-sm transition-transform duration-200",
+                countBump === 'boost' && "animate-count-bump font-semibold"
+              )}>
+                {formatCount(boostsCount)}
+              </span>
             </Button>
 
             {/* Favorite */}
@@ -153,23 +227,44 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
               variant="ghost"
               size="sm"
               className={cn(
-                "gap-2 hover:text-primary hover:bg-primary/10",
-                isFavorited ? "text-primary" : "text-muted-foreground"
+                "gap-2 transition-all duration-200 group relative",
+                isFavorited 
+                  ? "text-primary hover:text-primary hover:bg-primary/10" 
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
               onClick={handleFavorite}
               disabled={!profile || isLoading}
             >
-              <Heart className={cn("h-4 w-4 transition-transform", isFavorited && "fill-current animate-heart-pop")} />
-              <span className="text-sm">{formatCount(favoritesCount)}</span>
+              {showHeartParticle && (
+                <FloatingParticle emoji="❤️" onComplete={() => setShowHeartParticle(false)} />
+              )}
+              <div className="relative">
+                <Heart 
+                  className={cn(
+                    "h-4 w-4 transition-all duration-200",
+                    heartAnimating && "animate-heart-pop",
+                    isFavorited && "fill-current"
+                  )} 
+                />
+                {isFavorited && !heartAnimating && (
+                  <span className="absolute inset-0 animate-ping-once rounded-full bg-primary/30" />
+                )}
+              </div>
+              <span className={cn(
+                "text-sm transition-transform duration-200",
+                countBump === 'heart' && "animate-count-bump font-semibold"
+              )}>
+                {formatCount(favoritesCount)}
+              </span>
             </Button>
 
             {/* Share */}
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 group"
             >
-              <Share className="h-4 w-4" />
+              <Share className="h-4 w-4 group-hover:animate-wiggle" />
             </Button>
           </div>
         </div>
