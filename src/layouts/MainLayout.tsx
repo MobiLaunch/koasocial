@@ -22,8 +22,6 @@ export default function MainLayout() {
         <div className="flex">
           {/* Main content */}
           <main className="flex-1 min-h-screen border-r max-w-2xl pb-20 lg:pb-0">
-            {/* Mobile header spacer */}
-            <div className="h-14 lg:hidden" />
             <Outlet key={refreshKey} />
           </main>
 
