@@ -97,7 +97,7 @@ export default function HomePage() {
       const result = await seedDatabase();
       if (result.success) {
         toast({
-          title: 'Welcome to KoaSocial! ðŸŽ‰',
+          title: 'Welcome to KoaSocial!',
           description: 'We\'ve added some initial content to get you started.',
         });
         setSeedDataExists(true);
@@ -145,7 +145,7 @@ export default function HomePage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12 gap-4">
           <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-            <span className="text-2xl">ðŸ¨</span>
+            <div className="text-2xl font-bold text-white">K</div>
           </div>
           <p className="text-sm text-muted-foreground">Loading your timeline...</p>
         </div>
@@ -154,7 +154,7 @@ export default function HomePage() {
           <Card className="p-8 text-center space-y-6">
             <div className="flex justify-center">
               <div className="h-20 w-20 rounded-3xl koa-gradient flex items-center justify-center">
-                <span className="text-5xl">ðŸ¨</span>
+                <div className="text-5xl font-bold text-white">K</div>
               </div>
             </div>
             
@@ -244,7 +244,7 @@ export default function HomePage() {
           
           {!hasMore && posts.length > 0 && (
             <div className="p-8 text-center space-y-3">
-              <p className="text-muted-foreground">You're all caught up! ðŸŽ‰</p>
+              <p className="text-muted-foreground">You're all caught up!</p>
               <Button
                 variant="ghost"
                 size="sm"
