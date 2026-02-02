@@ -434,9 +434,11 @@ Deno.serve(async (req) => {
     // ActivityPub expects 202 Accepted for async processing
     return new Response(null, { status: 202, headers: corsHeaders });
   } catch (error) {
-    console.error('Inbox error:', error);
+    // Log full error server-side for debugging
+    console.error('[activitypub-inbox] Internal error:', error);
+    // Return generic error to client
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Unable to process request' }),
       { status: 500, headers: corsHeaders }
     );
   }

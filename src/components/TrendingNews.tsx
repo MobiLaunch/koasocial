@@ -70,21 +70,27 @@ function formatTimeAgo(dateString: string): string {
   return `${diffDays}d ago`;
 }
 
-// Clean text from HTML entities and encoding issues
+// Clean text from HTML entities and encoding issues - using DOMParser for safety
 function cleanText(text: string): string {
   if (!text) return '';
   
-  // Decode HTML entities
-  const textarea = typeof document !== 'undefined' ? document.createElement('textarea') : null;
-  if (textarea) {
-    textarea.innerHTML = text;
-    text = textarea.value;
+  // Decode HTML entities safely using DOMParser (not innerHTML which can execute scripts)
+  if (typeof document !== 'undefined' && typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      // Get only the text content, stripping all HTML
+      text = doc.body.textContent || '';
+    } catch {
+      // Fallback: strip HTML tags with regex if DOMParser fails
+      text = text.replace(/<[^>]*>/g, '');
+    }
+  } else {
+    // Server-side fallback: strip HTML tags
+    text = text.replace(/<[^>]*>/g, '');
   }
   
-  // Remove any remaining HTML tags
-  text = text.replace(/<[^>]*>/g, '');
-  
-  // Fix common encoding issues
+  // Fix common encoding issues that may remain
   text = text
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
