@@ -9,6 +9,26 @@ const corsHeaders = {
 // Import crypto for signing
 const encoder = new TextEncoder();
 
+// Map internal errors to user-friendly messages
+function getUserFriendlyError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  
+  // Log full error server-side for debugging
+  console.error('[follow-remote] Internal error:', message);
+  
+  // Return generic messages to client
+  if (message.includes('not found') || message.includes('404')) {
+    return 'The requested resource was not found.';
+  }
+  if (message.includes('unauthorized') || message.includes('401')) {
+    return 'Authentication required.';
+  }
+  if (message.includes('timeout') || message.includes('ETIMEDOUT')) {
+    return 'Request timed out. Please try again.';
+  }
+  return 'Unable to complete request. Please try again.';
+}
+
 // Sign the request using HTTP Signatures
 async function signRequest(
   method: string,
@@ -84,7 +104,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -99,7 +119,7 @@ Deno.serve(async (req) => {
     
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -109,7 +129,7 @@ Deno.serve(async (req) => {
 
     if (!remote_actor_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing remote_actor_id' }),
+        JSON.stringify({ error: 'Missing required parameter' }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -122,8 +142,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError || !profile) {
+      console.error('[follow-remote] Profile lookup failed:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Profile not found' }),
+        JSON.stringify({ error: 'User profile not found' }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -136,8 +157,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (keysError || !keys) {
+      console.error('[follow-remote] Keys lookup failed:', keysError);
       return new Response(
-        JSON.stringify({ error: 'Actor keys not found. Please refresh your profile.' }),
+        JSON.stringify({ error: 'Account setup incomplete. Please refresh your profile.' }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -150,8 +172,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (remoteError || !remoteActor) {
+      console.error('[follow-remote] Remote actor lookup failed:', remoteError);
       return new Response(
-        JSON.stringify({ error: 'Remote actor not found' }),
+        JSON.stringify({ error: 'The remote account was not found' }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -211,9 +234,9 @@ Deno.serve(async (req) => {
 
       if (!response.ok && response.status !== 202) {
         const errorText = await response.text();
-        console.error('Follow request failed:', response.status, errorText);
+        console.error('[follow-remote] Remote server rejected follow:', response.status, errorText);
         return new Response(
-          JSON.stringify({ error: 'Failed to send follow request' }),
+          JSON.stringify({ error: 'The remote server could not process the request' }),
           { status: 502, headers: corsHeaders }
         );
       }
@@ -298,7 +321,7 @@ Deno.serve(async (req) => {
       });
 
       if (!response.ok && response.status !== 202) {
-        console.error('Unfollow request failed:', response.status);
+        console.error('[follow-remote] Remote server rejected unfollow:', response.status);
       }
 
       // Remove the follow locally
@@ -329,9 +352,8 @@ Deno.serve(async (req) => {
       { status: 400, headers: corsHeaders }
     );
   } catch (error) {
-    console.error('Follow error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: getUserFriendlyError(error) }),
       { status: 500, headers: corsHeaders }
     );
   }
