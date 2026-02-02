@@ -15,13 +15,12 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Inter',
+  				'Roboto',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
   				'BlinkMacSystemFont',
   				'Segoe UI',
-  				'Roboto',
   				'Helvetica Neue',
   				'Arial',
   				'Noto Sans',
@@ -36,7 +35,7 @@ export default {
   				'sans-serif'
   			],
   			serif: [
-  				'Lora',
+  				'Libre Caslon Text',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
@@ -45,7 +44,7 @@ export default {
   				'serif'
   			],
   			mono: [
-  				'Space Mono',
+  				'Roboto Mono',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
@@ -197,7 +196,7 @@ export default {
   					transform: 'rotate(360deg) scale(1)'
   				}
   			},
-  			'wiggle': {
+  			wiggle: {
   				'0%, 100%': {
   					transform: 'rotate(0deg)'
   				},
@@ -248,7 +247,7 @@ export default {
   			'scale-in': 'scale-in 0.2s ease-out',
   			'heart-pop': 'heart-pop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.28)',
   			'boost-spin': 'boost-spin 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28)',
-  			'wiggle': 'wiggle 0.3s ease-in-out',
+  			wiggle: 'wiggle 0.3s ease-in-out',
   			'float-up': 'float-up 0.6s ease-out forwards',
   			'ping-once': 'ping-once 0.5s cubic-bezier(0, 0, 0.2, 1) forwards',
   			'count-bump': 'count-bump 0.3s ease-out'
