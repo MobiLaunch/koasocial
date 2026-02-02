@@ -27,7 +27,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-          <span className="text-2xl">🐨</span>
+          <div className="text-2xl font-bold text-white">K</div>
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-          <span className="text-2xl">🐨</span>
+          <div className="text-2xl font-bold text-white">K</div>
         </div>
       </div>
     );
