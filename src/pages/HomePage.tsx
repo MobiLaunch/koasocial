@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Home as HomeIcon, Loader2 } from 'lucide-react';
+import { Home as HomeIcon, Loader2, Sparkles, RefreshCw, Plus } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
+import { ComposeModal } from '@/components/ComposeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserInteractions, type Post } from '@/lib/api';
 import { supabase } from '@/integrations/supabase/client';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { seedDatabase, checkIfSeedDataExists } from '@/lib/seedData';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 const PAGE_SIZE = 15;
 
 export default function HomePage() {
   const { profile } = useAuth();
+  const { toast } = useToast();
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedDataExists, setSeedDataExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkIfSeedDataExists().then(setSeedDataExists);
+  }, []);
 
   const fetchPosts = useCallback(async (cursor?: string) => {
     let query = supabase
@@ -30,7 +43,6 @@ export default function HomePage() {
 
     if (error) throw error;
 
-    // Get counts for each post
     const postsWithCounts = await Promise.all(
       (posts || []).map(async (post) => {
         const [repliesRes, boostsRes, favoritesRes] = await Promise.all([
@@ -48,7 +60,6 @@ export default function HomePage() {
       })
     );
 
-    // Get user interactions if logged in
     let finalPosts = postsWithCounts;
     if (profile && postsWithCounts.length > 0) {
       const postIds = postsWithCounts.map(p => p.id);
@@ -80,22 +91,140 @@ export default function HomePage() {
     pageSize: PAGE_SIZE 
   });
 
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      const result = await seedDatabase();
+      if (result.success) {
+        toast({
+          title: 'Welcome to KoaSocial! ðŸŽ‰',
+          description: 'We\'ve added some initial content to get you started.',
+        });
+        setSeedDataExists(true);
+        refresh();
+      } else {
+        toast({
+          title: 'Oops!',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to seed database',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const isEmptyTimeline = !loading && posts.length === 0;
+  const showSeedOption = isEmptyTimeline && seedDataExists === false;
+
   return (
     <div className="animate-fade-in">
-      {/* Header - hidden on mobile since we have MobileHeader */}
       <header className="hidden lg:block sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="flex items-center gap-3">
-          <HomeIcon className="h-6 w-6 text-primary" />
-          <h1 className="font-display text-xl font-bold text-foreground">Home</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <HomeIcon className="h-6 w-6 text-primary" />
+            <h1 className="font-display text-xl font-bold text-foreground">Home</h1>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setComposeOpen(true)}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Post</span>
+          </Button>
         </div>
       </header>
 
-      {/* Timeline */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
+            <span className="text-2xl">ðŸ¨</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Loading your timeline...</p>
         </div>
-      ) : posts.length > 0 ? (
+      ) : isEmptyTimeline ? (
+        <div className="p-6 max-w-lg mx-auto">
+          <Card className="p-8 text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="h-20 w-20 rounded-3xl koa-gradient flex items-center justify-center">
+                <span className="text-5xl">ðŸ¨</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">Welcome to KoaSocial!</h2>
+              <p className="text-muted-foreground">
+                This is a warm, friendly place to connect and share. Let's get you started!
+              </p>
+            </div>
+
+            {showSeedOption && (
+              <div className="space-y-4 pt-4">
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                    <div className="text-left flex-1">
+                      <h3 className="font-semibold text-foreground mb-1">New here?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        We can add some example content and friendly accounts to help you explore KoaSocial!
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleSeedDatabase}
+                    disabled={isSeeding}
+                    className="w-full gap-2"
+                    variant="default"
+                  >
+                    {isSeeding ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Add Example Content
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  Or skip ahead and...
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <Button
+                onClick={() => setComposeOpen(true)}
+                size="lg"
+                className="w-full gap-2"
+                variant={showSeedOption ? "outline" : "default"}
+              >
+                <Plus className="h-5 w-5" />
+                Share Your First Post
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                You can also explore the{' '}
+                <a href="/public" className="text-primary hover:underline">
+                  public timeline
+                </a>{' '}
+                to discover others
+              </p>
+            </div>
+          </Card>
+        </div>
+      ) : (
         <div className="divide-y divide-border">
           {posts.map((post) => (
             <PostCard
@@ -105,7 +234,6 @@ export default function HomePage() {
             />
           ))}
           
-          {/* Sentinel for infinite scroll */}
           <div ref={sentinelRef} className="h-1" />
           
           {loadingMore && (
@@ -114,18 +242,32 @@ export default function HomePage() {
             </div>
           )}
           
-          {!hasMore && (
-            <div className="p-8 text-center text-muted-foreground">
-              <p>You're all caught up! 🎉</p>
+          {!hasMore && posts.length > 0 && (
+            <div className="p-8 text-center space-y-3">
+              <p className="text-muted-foreground">You're all caught up! ðŸŽ‰</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setComposeOpen(true)}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Share something new
+              </Button>
             </div>
           )}
         </div>
-      ) : (
-        <div className="p-8 text-center text-muted-foreground">
-          <p className="text-lg mb-2">No posts yet!</p>
-          <p>Be the first to share something 🐨</p>
-        </div>
       )}
+
+      <Button
+        onClick={() => setComposeOpen(true)}
+        size="lg"
+        className="fixed bottom-20 right-4 lg:hidden h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow z-40 p-0"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      <ComposeModal open={composeOpen} onOpenChange={setComposeOpen} onPostCreated={refresh} />
     </div>
   );
 }
