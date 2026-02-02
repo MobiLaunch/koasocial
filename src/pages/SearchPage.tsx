@@ -163,3 +163,4 @@ export function NewMessageModal({ isOpen, onClose, onConversationCreated }: NewM
     </Dialog>
   );
 }
+export default SearchPage;
