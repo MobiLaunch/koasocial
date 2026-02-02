@@ -15,6 +15,7 @@ import ProfileEditPage from "./pages/ProfileEditPage";
 import SearchPage from "./pages/SearchPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import SettingsPage from "./pages/SettingsPage";
+import MessagesPage from "./pages/MessagesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +28,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-          <span className="text-2xl">🐨</span>
+          <div className="text-2xl font-bold text-white">K</div>
         </div>
       </div>
     );
@@ -48,7 +49,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-          <span className="text-2xl">🐨</span>
+          <div className="text-2xl font-bold text-white">K</div>
         </div>
       </div>
     );
@@ -85,6 +86,7 @@ const AppRoutes = () => (
       <Route path="/home" element={<HomePage />} />
       <Route path="/public" element={<PublicPage />} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/messages" element={<MessagesPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/profile/edit" element={<ProfileEditPage />} />
