@@ -6,6 +6,7 @@ import { Search, Loader2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserResult {
   id: string;
@@ -22,6 +23,7 @@ interface NewMessageModalProps {
 
 export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewMessageModalProps) => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<UserResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -35,17 +37,21 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
     }
 
     setIsSearching(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, display_name, avatar_url")
-      .or(`username.ilike.%${val}%,display_name.ilike.%${val}%`)
-      .neq("id", profile?.id || "")
-      .limit(10);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .or(`username.ilike.%${val}%,display_name.ilike.%${val}%`)
+        .neq("id", profile?.id || "")
+        .limit(10);
 
-    if (!error && data) {
-      setResults(data as UserResult[]);
+      if (error) throw error;
+      setResults((data as UserResult[]) || []);
+    } catch (err) {
+      console.error("Search error:", err);
+    } finally {
+      setIsSearching(false);
     }
-    setIsSearching(false);
   };
 
   const startConversation = async (targetUser: UserResult) => {
@@ -53,27 +59,26 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
     setIsCreating(true);
 
     try {
-      // 1. Create the conversation record
-      const { data: conversation, error: convError } = await supabase
-        .from("conversations")
-        .insert({})
-        .select()
-        .single();
+      // AUTOMATION: Use the RPC function to handle the logic in the database
+      // This checks if a chat exists, creates it if not, and adds participants.
+      const { data: conversationId, error } = await supabase.rpc("get_or_create_conversation", {
+        user_a: profile.id,
+        user_b: targetUser.id,
+      });
 
-      if (convError) throw convError;
+      if (error) throw error;
 
-      // 2. Add both participants
-      const { error: partError } = await supabase.from("conversation_participants").insert([
-        { conversation_id: conversation.id, profile_id: profile.id },
-        { conversation_id: conversation.id, profile_id: targetUser.id },
-      ]);
-
-      if (partError) throw partError;
-
-      onConversationCreated(conversation.id);
-      onClose();
-    } catch (err) {
+      if (conversationId) {
+        onConversationCreated(conversationId);
+        onClose();
+      }
+    } catch (err: any) {
       console.error("Error starting conversation:", err);
+      toast({
+        title: "Connection Failed",
+        description: "Could not start a conversation. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsCreating(false);
     }
@@ -98,30 +103,37 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
         <div className="max-h-[300px] overflow-y-auto mt-4 space-y-2">
           {isSearching ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="animate-spin" />
+              <Loader2 className="animate-spin text-primary" />
             </div>
-          ) : (
+          ) : results.length > 0 ? (
             results.map((user) => (
-              <div
+              <button
                 key={user.id}
-                className="flex items-center justify-between p-2 hover:bg-secondary rounded-lg cursor-pointer"
+                className="w-full flex items-center justify-between p-2 hover:bg-secondary rounded-lg transition-colors"
                 onClick={() => startConversation(user)}
+                disabled={isCreating}
               >
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={user.avatar_url || undefined} />
-                    <AvatarFallback>{user.username[0]}</AvatarFallback>
+                    <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="text-left">
                     <p className="font-bold text-sm">{user.display_name || user.username}</p>
                     <p className="text-xs text-muted-foreground">@{user.username}</p>
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" disabled={isCreating}>
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              </div>
+                {isCreating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4 text-primary" />
+                )}
+              </button>
             ))
+          ) : searchTerm.length >= 2 ? (
+            <p className="text-center text-sm text-muted-foreground py-4">No users found</p>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-4">Search for a friend</p>
           )}
         </div>
       </DialogContent>
