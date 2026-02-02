@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
     try {
       remoteActor = await fetchRemoteActor(activity.actor, supabase);
     } catch (fetchError) {
-      console.error('Failed to fetch remote actor:', fetchError);
+      console.error('[activitypub-inbox] Failed to fetch remote actor:', fetchError);
       await supabase
         .from('federation_activities')
         .update({ 
@@ -355,14 +355,14 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch remote actor' }),
+        JSON.stringify({ error: 'Unable to process request' }),
         { status: 502, headers: corsHeaders }
       );
     }
 
     // Verify the actor has a public key
     if (!remoteActor.public_key) {
-      console.error('Remote actor has no public key');
+      console.error('[activitypub-inbox] Remote actor has no public key');
       await supabase
         .from('federation_activities')
         .update({ 
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Remote actor has no public key' }),
+        JSON.stringify({ error: 'Authentication failed' }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
     );
 
     if (!isValidSignature) {
-      console.error('Invalid HTTP signature from:', activity.actor);
+      console.error('[activitypub-inbox] Invalid HTTP signature from:', activity.actor);
       await supabase
         .from('federation_activities')
         .update({ 
@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
+        JSON.stringify({ error: 'Authentication failed' }),
         { status: 401, headers: corsHeaders }
       );
     }
