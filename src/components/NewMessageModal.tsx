@@ -59,11 +59,10 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
     setIsCreating(true);
 
     try {
-      // We cast 'supabase.rpc' to 'any' here to bypass the TS 'never' error
-      // while maintaining the functionality.
+      // Updated to match your new SQL function parameters
       const { data: conversationId, error } = await (supabase.rpc as any)("get_or_create_conversation", {
-        user_a: profile.id,
-        user_b: targetUser.id,
+        p_user_id: profile.id,
+        p_target_id: targetUser.id,
       });
 
       if (error) throw error;
