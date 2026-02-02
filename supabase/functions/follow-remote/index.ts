@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.93.3';
+import { validateUUID, validateUrl, MAX_JSON_SIZE } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -127,9 +128,19 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { remote_actor_id, action = 'follow' } = body;
 
-    if (!remote_actor_id) {
+    // Validate remote_actor_id is a valid UUID
+    const uuidValidation = validateUUID(remote_actor_id, 'remote_actor_id');
+    if (!uuidValidation.valid) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter' }),
+        JSON.stringify({ error: uuidValidation.error }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate action
+    if (action !== 'follow' && action !== 'unfollow') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid action. Must be "follow" or "unfollow"' }),
         { status: 400, headers: corsHeaders }
       );
     }
