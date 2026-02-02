@@ -25,71 +25,72 @@ export function ConversationView({ conversationId, onBack }: ConversationViewPro
   const [otherParticipant, setOtherParticipant] = useState<OtherParticipant | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const loadConversation = async () => {
-    if (!profile) return
+ const loadConversation = async () => {
+    if (!profile) return;
+    setLoading(true);
 
     try {
-      // 1. Get other participant
-      const { data: participants } = await supabase
-        .from('conversation_participants')
-        .select('profile_id')
-        .eq('conversation_id', conversationId)
-        .neq('profile_id', profile.id)
+      // 1. Fetch Participant and History in Parallel to save time
+      const [participantResponse, messagesResponse] = await Promise.all([
+        supabase
+          .from('conversation_participants')
+          .select('profile_id')
+          .eq('conversation_id', conversationId)
+          .neq('profile_id', profile.id)
+          .maybeSingle(),
+        supabase
+          .from('messages')
+          .select('id, content, created_at, sender_id')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+      ]);
 
-      if (participants?.[0]) {
-        const { data: otherProfile } = await supabase
+      if (messagesResponse.error) throw messagesResponse.error;
+
+      // 2. Resolve the other user's profile detail
+      let participantData: OtherParticipant | null = null;
+      if (participantResponse.data) {
+        const { data: profileDetail, error: profileError } = await supabase
           .from('profiles')
           .select('id, display_name, username, avatar_url')
-          .eq('id', participants[0].profile_id)
-          .single()
-
-        if (otherProfile) setOtherParticipant(otherProfile)
+          .eq('id', participantResponse.data.profile_id)
+          .single();
+        
+        if (!profileError && profileDetail) {
+          participantData = profileDetail;
+          setOtherParticipant(profileDetail);
+        }
       }
 
-      // 2. Get history from DB
-      const { data: msgs, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id
-        `)
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-
-      // 3. Transform DB messages to ChatComponent format
-      const formattedMessages: ChatMessage[] = (msgs || []).map((msg) => ({
+      // 3. Format messages only AFTER we have the participant name or fallback
+      const formattedMessages: ChatMessage[] = (messagesResponse.data || []).map((msg) => ({
         id: msg.id,
         content: msg.content,
         createdAt: msg.created_at,
-        user: { 
-          // We don't have the sender name in the message table usually, 
-          // so we check if it's us or them
+        user: {
           name: msg.sender_id === profile.id 
-            ? (profile.display_name || profile.username || 'Me')
-            : (otherParticipant?.display_name || 'Them')
+            ? (profile.display_name || profile.username || 'Me') 
+            : (participantData?.display_name || 'Them')
         },
         isOwnMessage: msg.sender_id === profile.id
-      }))
+      }));
 
-      setInitialMessages(formattedMessages)
+      setInitialMessages(formattedMessages);
 
-      // 4. Mark as read
+      // 4. Update Read Status
       await supabase
         .from('conversation_participants')
         .update({ last_read_at: new Date().toISOString() })
         .eq('conversation_id', conversationId)
-        .eq('profile_id', profile.id)
+        .eq('profile_id', profile.id);
 
     } catch (error) {
-      console.error('Error loading conversation:', error)
+      console.error('Critical Error loading conversation:', error);
+      // Optional: Add a toast notification here if you have useToast imported
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     loadConversation()
