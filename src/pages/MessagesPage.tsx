@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { MessageCircle, Plus, Loader2, Search, CheckCheck } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { NewMessageModal } from '@/components/NewMessageModal';
-import { ConversationView } from '@/components/ConversationView';
+import { useState, useEffect } from "react";
+import { MessageCircle, Plus, Loader2, Search, CheckCheck } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { NewMessageModal } from "@/components/NewMessageModal";
+import { ConversationView } from "@/components/ConversationView";
 
 interface ConversationWithParticipant {
   id: string;
@@ -33,20 +33,20 @@ export default function MessagesPage() {
   const { toast } = useToast();
   const [conversations, setConversations] = useState<ConversationWithParticipant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
   const loadConversations = async () => {
     if (!profile) return;
-    
+
     setLoading(true);
     try {
       // Get all conversations this user is part of
       const { data: participations, error: partError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id, last_read_at')
-        .eq('profile_id', profile.id);
+        .from("conversation_participants")
+        .select("conversation_id, last_read_at")
+        .eq("profile_id", profile.id);
 
       if (partError) throw partError;
       if (!participations?.length) {
@@ -55,15 +55,15 @@ export default function MessagesPage() {
         return;
       }
 
-      const conversationIds = participations.map(p => p.conversation_id);
-      const lastReadMap = new Map(participations.map(p => [p.conversation_id, p.last_read_at]));
+      const conversationIds = participations.map((p) => p.conversation_id);
+      const lastReadMap = new Map(participations.map((p) => [p.conversation_id, p.last_read_at]));
 
       // Get conversation details
       const { data: convos, error: convoError } = await supabase
-        .from('conversations')
-        .select('id, updated_at')
-        .in('id', conversationIds)
-        .order('updated_at', { ascending: false });
+        .from("conversations")
+        .select("id, updated_at")
+        .in("id", conversationIds)
+        .order("updated_at", { ascending: false });
 
       if (convoError) throw convoError;
 
@@ -73,36 +73,36 @@ export default function MessagesPage() {
       for (const convo of convos || []) {
         // Get the other participant
         const { data: otherParticipants } = await supabase
-          .from('conversation_participants')
-          .select('profile_id')
-          .eq('conversation_id', convo.id)
-          .neq('profile_id', profile.id);
+          .from("conversation_participants")
+          .select("profile_id")
+          .eq("conversation_id", convo.id)
+          .neq("profile_id", profile.id);
 
         if (otherParticipants?.[0]) {
           const { data: otherProfile } = await supabase
-            .from('profiles')
-            .select('id, display_name, username, avatar_url')
-            .eq('id', otherParticipants[0].profile_id)
+            .from("profiles")
+            .select("id, display_name, username, avatar_url")
+            .eq("id", otherParticipants[0].profile_id)
             .single();
 
           // Get last message
           const { data: messages } = await supabase
-            .from('messages')
-            .select('content, sender_id, created_at')
-            .eq('conversation_id', convo.id)
-            .order('created_at', { ascending: false })
+            .from("messages")
+            .select("content, sender_id, created_at")
+            .eq("conversation_id", convo.id)
+            .order("created_at", { ascending: false })
             .limit(1);
 
           // Count unread messages
           const lastRead = lastReadMap.get(convo.id);
           let unreadQuery = supabase
-            .from('messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('conversation_id', convo.id)
-            .neq('sender_id', profile.id);
+            .from("messages")
+            .select("id", { count: "exact", head: true })
+            .eq("conversation_id", convo.id)
+            .neq("sender_id", profile.id);
 
           if (lastRead) {
-            unreadQuery = unreadQuery.gt('created_at', lastRead);
+            unreadQuery = unreadQuery.gt("created_at", lastRead);
           }
 
           const { count: unreadCount } = await unreadQuery;
@@ -121,11 +121,11 @@ export default function MessagesPage() {
 
       setConversations(conversationsWithParticipants);
     } catch (error: any) {
-      console.error('Error loading conversations:', error);
+      console.error("Error loading conversations:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load conversations',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load conversations",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -134,12 +134,19 @@ export default function MessagesPage() {
 
   useEffect(() => {
     loadConversations();
-  }, [profile]);
 
-  const filteredConversations = conversations.filter(c =>
-    c.participant.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.participant.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Listen for new messages to refresh the conversation list automatically
+    const channel = supabase
+      .channel("messages-update")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        loadConversations(); // Reload the list to show the new 'last message' and unread count
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
 
   if (selectedConversation) {
     return (
@@ -162,11 +169,7 @@ export default function MessagesPage() {
             <MessageCircle className="h-6 w-6 text-primary" />
             <h1 className="font-display text-xl font-bold text-foreground">Messages</h1>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setNewMessageOpen(true)}
-            className="gap-2"
-          >
+          <Button size="sm" onClick={() => setNewMessageOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New</span>
           </Button>
@@ -199,9 +202,7 @@ export default function MessagesPage() {
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-foreground">No messages yet</h2>
-              <p className="text-muted-foreground">
-                Start a conversation with someone!
-              </p>
+              <p className="text-muted-foreground">Start a conversation with someone!</p>
             </div>
             <Button onClick={() => setNewMessageOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
@@ -225,7 +226,9 @@ export default function MessagesPage() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`font-semibold truncate ${convo.unreadCount > 0 ? 'text-foreground' : 'text-foreground'}`}>
+                  <span
+                    className={`font-semibold truncate ${convo.unreadCount > 0 ? "text-foreground" : "text-foreground"}`}
+                  >
                     {convo.participant.display_name}
                   </span>
                   {convo.lastMessage && (
@@ -238,8 +241,10 @@ export default function MessagesPage() {
                   {convo.lastMessage && convo.lastMessage.sender_id === profile?.id && (
                     <CheckCheck className="h-3 w-3 text-primary flex-shrink-0" />
                   )}
-                  <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                    {convo.lastMessage?.content || 'No messages yet'}
+                  <p
+                    className={`text-sm truncate ${convo.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                  >
+                    {convo.lastMessage?.content || "No messages yet"}
                   </p>
                   {convo.unreadCount > 0 && (
                     <span className="ml-auto flex-shrink-0 h-5 min-w-5 px-1.5 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center">
