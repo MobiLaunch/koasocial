@@ -6,6 +6,124 @@ const corsHeaders = {
   'Content-Type': 'application/activity+json',
 };
 
+const encoder = new TextEncoder();
+
+// Parse HTTP Signature header into components
+function parseSignatureHeader(signatureHeader: string): Record<string, string> | null {
+  const params: Record<string, string> = {};
+  const regex = /(\w+)="([^"]+)"/g;
+  let match;
+  
+  while ((match = regex.exec(signatureHeader)) !== null) {
+    params[match[1]] = match[2];
+  }
+  
+  if (!params.keyId || !params.signature || !params.headers) {
+    return null;
+  }
+  
+  return params;
+}
+
+// Verify HTTP Signature
+async function verifyHttpSignature(
+  method: string,
+  url: URL,
+  signatureHeader: string,
+  dateHeader: string,
+  digestHeader: string | null,
+  body: string,
+  publicKeyPem: string
+): Promise<boolean> {
+  try {
+    const params = parseSignatureHeader(signatureHeader);
+    if (!params) {
+      console.error('Failed to parse signature header');
+      return false;
+    }
+
+    // Check if date is within acceptable range (5 minutes)
+    const requestDate = new Date(dateHeader);
+    const now = new Date();
+    const timeDiff = Math.abs(now.getTime() - requestDate.getTime());
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    if (timeDiff > fiveMinutes) {
+      console.error('Request date is too old or too far in the future');
+      return false;
+    }
+
+    // Verify digest if present
+    if (digestHeader && body) {
+      const digestParts = digestHeader.split('=');
+      if (digestParts.length === 2 && digestParts[0] === 'SHA-256') {
+        const expectedDigest = digestParts[1];
+        const bodyBuffer = encoder.encode(body);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBuffer);
+        const actualDigest = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+        
+        if (actualDigest !== expectedDigest) {
+          console.error('Digest mismatch');
+          return false;
+        }
+      }
+    }
+
+    // Build the signing string based on headers specified in signature
+    const signedHeadersList = params.headers.split(' ');
+    const signingStringParts: string[] = [];
+    
+    for (const header of signedHeadersList) {
+      if (header === '(request-target)') {
+        signingStringParts.push(`(request-target): ${method.toLowerCase()} ${url.pathname}`);
+      } else if (header === 'host') {
+        signingStringParts.push(`host: ${url.host}`);
+      } else if (header === 'date') {
+        signingStringParts.push(`date: ${dateHeader}`);
+      } else if (header === 'digest') {
+        if (digestHeader) {
+          signingStringParts.push(`digest: ${digestHeader}`);
+        }
+      } else if (header === 'content-type') {
+        signingStringParts.push(`content-type: application/activity+json`);
+      }
+    }
+    
+    const signingString = signingStringParts.join('\n');
+
+    // Import the public key
+    const pemContents = publicKeyPem
+      .replace('-----BEGIN PUBLIC KEY-----', '')
+      .replace('-----END PUBLIC KEY-----', '')
+      .replace(/\n/g, '');
+    
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'spki',
+      binaryKey,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    // Decode and verify signature
+    const signatureBytes = Uint8Array.from(atob(params.signature), c => c.charCodeAt(0));
+    
+    const isValid = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      cryptoKey,
+      signatureBytes,
+      encoder.encode(signingString)
+    );
+
+    return isValid;
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
 // Fetch a remote actor and cache it
 async function fetchRemoteActor(actorUri: string, supabase: any): Promise<any> {
   // Check cache first
@@ -190,11 +308,28 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const activity = await req.json();
+    // Get required headers for signature verification
+    const signatureHeader = req.headers.get('Signature');
+    const dateHeader = req.headers.get('Date');
+    const digestHeader = req.headers.get('Digest');
 
-    // Log the activity for debugging
+    // Clone request to read body multiple times
+    const bodyText = await req.text();
+    const activity = JSON.parse(bodyText);
+
+    // Require signature headers for authenticated ActivityPub requests
+    if (!signatureHeader || !dateHeader) {
+      console.warn('Missing required signature headers');
+      return new Response(
+        JSON.stringify({ error: 'Missing required signature headers (Signature, Date)' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Log the activity for debugging (before verification)
+    const activityLogId = activity.id || `${Date.now()}`;
     await supabase.from('federation_activities').insert({
-      activity_id: activity.id || `${Date.now()}`,
+      activity_id: activityLogId,
       activity_type: activity.type,
       actor_uri: activity.actor,
       object_uri: typeof activity.object === 'string' ? activity.object : activity.object?.id,
@@ -204,11 +339,77 @@ Deno.serve(async (req) => {
       status: 'pending',
     });
 
-    // TODO: Verify HTTP Signature
-    // This is complex and requires parsing the Signature header
-    // and verifying it against the actor's public key
+    // Fetch the remote actor to get their public key
+    let remoteActor;
+    try {
+      remoteActor = await fetchRemoteActor(activity.actor, supabase);
+    } catch (fetchError) {
+      console.error('Failed to fetch remote actor:', fetchError);
+      await supabase
+        .from('federation_activities')
+        .update({ 
+          status: 'failed', 
+          error_message: 'Failed to fetch remote actor for signature verification',
+          processed_at: new Date().toISOString(),
+        })
+        .eq('activity_id', activityLogId);
+      
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch remote actor' }),
+        { status: 502, headers: corsHeaders }
+      );
+    }
 
-    // Process the activity
+    // Verify the actor has a public key
+    if (!remoteActor.public_key) {
+      console.error('Remote actor has no public key');
+      await supabase
+        .from('federation_activities')
+        .update({ 
+          status: 'failed', 
+          error_message: 'Remote actor has no public key',
+          processed_at: new Date().toISOString(),
+        })
+        .eq('activity_id', activityLogId);
+      
+      return new Response(
+        JSON.stringify({ error: 'Remote actor has no public key' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Verify HTTP Signature
+    const requestUrl = new URL(req.url);
+    const isValidSignature = await verifyHttpSignature(
+      req.method,
+      requestUrl,
+      signatureHeader,
+      dateHeader,
+      digestHeader,
+      bodyText,
+      remoteActor.public_key
+    );
+
+    if (!isValidSignature) {
+      console.error('Invalid HTTP signature from:', activity.actor);
+      await supabase
+        .from('federation_activities')
+        .update({ 
+          status: 'failed', 
+          error_message: 'Invalid HTTP signature',
+          processed_at: new Date().toISOString(),
+        })
+        .eq('activity_id', activityLogId);
+      
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    console.log('Verified signature from:', activity.actor);
+
+    // Process the activity (now verified)
     try {
       await processActivity(activity, supabase, instanceDomain);
 
@@ -216,7 +417,7 @@ Deno.serve(async (req) => {
       await supabase
         .from('federation_activities')
         .update({ status: 'processed', processed_at: new Date().toISOString() })
-        .eq('activity_id', activity.id || `${Date.now()}`);
+        .eq('activity_id', activityLogId);
     } catch (processError) {
       console.error('Error processing activity:', processError);
       
@@ -227,7 +428,7 @@ Deno.serve(async (req) => {
           error_message: processError instanceof Error ? processError.message : 'Unknown error',
           processed_at: new Date().toISOString(),
         })
-        .eq('activity_id', activity.id || `${Date.now()}`);
+        .eq('activity_id', activityLogId);
     }
 
     // ActivityPub expects 202 Accepted for async processing
