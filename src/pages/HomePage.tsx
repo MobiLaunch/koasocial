@@ -267,7 +267,7 @@ export default function HomePage() {
         <Plus className="h-6 w-6" />
       </Button>
 
-      <ComposeModal open={composeOpen} onOpenChange={setComposeOpen} onPostCreated={refresh} />
+      <ComposeModal isOpen={composeOpen} onClose={() => setComposeOpen(false)} onPostCreated={refresh} />
     </div>
   );
 }

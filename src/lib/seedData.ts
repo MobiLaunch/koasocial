@@ -242,14 +242,16 @@ export async function addSeedEngagement(): Promise<void> {
       for (const profile of profiles.slice(0, 3)) {
         if (post.author_id === profile.id) continue;
         
-        await supabase
-          .from('favorites')
-          .insert({
-            user_id: profile.id,
-            post_id: post.id,
-          })
-          .then(() => {})
-          .catch(() => {});
+        try {
+          await supabase
+            .from('favorites')
+            .insert({
+              user_id: profile.id,
+              post_id: post.id,
+            });
+        } catch {
+          // Ignore duplicate or failed inserts
+        }
       }
     }
 
@@ -257,14 +259,16 @@ export async function addSeedEngagement(): Promise<void> {
       for (const profile of profiles.slice(0, 2)) {
         if (post.author_id === profile.id) continue;
         
-        await supabase
-          .from('boosts')
-          .insert({
-            user_id: profile.id,
-            post_id: post.id,
-          })
-          .then(() => {})
-          .catch(() => {});
+        try {
+          await supabase
+            .from('boosts')
+            .insert({
+              user_id: profile.id,
+              post_id: post.id,
+            });
+        } catch {
+          // Ignore duplicate or failed inserts
+        }
       }
     }
 
