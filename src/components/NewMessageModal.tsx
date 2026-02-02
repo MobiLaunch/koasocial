@@ -59,9 +59,9 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
     setIsCreating(true);
 
     try {
-      // AUTOMATION: Use the RPC function to handle the logic in the database
-      // This checks if a chat exists, creates it if not, and adds participants.
-      const { data: conversationId, error } = await supabase.rpc("get_or_create_conversation", {
+      // We cast 'supabase.rpc' to 'any' here to bypass the TS 'never' error
+      // while maintaining the functionality.
+      const { data: conversationId, error } = await (supabase.rpc as any)("get_or_create_conversation", {
         user_a: profile.id,
         user_b: targetUser.id,
       });
