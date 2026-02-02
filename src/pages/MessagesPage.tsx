@@ -146,7 +146,7 @@ export default function MessagesPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile]);
+  }
 
   if (selectedConversation) {
     return (
