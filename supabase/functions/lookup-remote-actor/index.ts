@@ -1,10 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.93.3';
-import { 
-  validateHandle, 
-  parseHandle as parseHandleUtil, 
-  sanitizeString,
-  MAX_HANDLE_LENGTH 
-} from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,14 +8,18 @@ const corsHeaders = {
 
 // Parse a handle like @user@instance.domain or user@instance.domain
 function parseHandle(handle: string): { username: string; instance: string } | null {
-  // First validate with shared validation
-  const validation = validateHandle(handle);
-  if (!validation.valid) {
+  // Remove leading @ if present
+  const cleaned = handle.startsWith('@') ? handle.slice(1) : handle;
+  const parts = cleaned.split('@');
+  
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
     return null;
   }
   
-  // Use shared parser
-  return parseHandleUtil(handle);
+  return {
+    username: parts[0].toLowerCase(),
+    instance: parts[1].toLowerCase(),
+  };
 }
 
 // Perform WebFinger lookup

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, Menu, X, LogOut, MessageCircle } from 'lucide-react';
+import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,6 @@ const navItems = [
   { icon: Home, label: 'Home', path: '/home' },
   { icon: Search, label: 'Search', path: '/search' },
   { icon: Globe, label: 'Public', path: '/public' },
-  { icon: MessageCircle, label: 'Messages', path: '/messages' },
   { icon: Bell, label: 'Notifications', path: '/notifications', badge: true },
   { icon: User, label: 'Profile', path: '/profile' },
   { icon: Settings, label: 'Settings', path: '/settings' },

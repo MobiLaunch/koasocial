@@ -16,7 +16,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ParsedContent } from '@/lib/parseContent';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
-import { Link } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -134,34 +133,26 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
 
       <div className="flex gap-3">
         {/* Avatar */}
-        <Link to={`/@${author.username}`} className="flex-shrink-0">
-          <Avatar className="h-12 w-12 ring-2 ring-background cursor-pointer hover:opacity-80 transition-opacity">
-            <AvatarImage src={author.avatar_url || undefined} alt={author.display_name} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {author.display_name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
+        <Avatar className="h-12 w-12 ring-2 ring-background">
+          <AvatarImage src={author.avatar_url || undefined} alt={author.display_name} />
+          <AvatarFallback className="bg-primary/10 text-primary">
+            {author.display_name.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
 
         <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-x-2 min-w-0">
-              <Link 
-                to={`/@${author.username}`} 
-                className="font-semibold text-foreground truncate flex items-center gap-1 hover:underline"
-              >
+              <span className="font-semibold text-foreground truncate flex items-center gap-1">
                 {author.display_name}
                 {author.is_verified && (
                   <VerifiedBadge tier={author.verification_tier} size="sm" />
                 )}
-              </Link>
-              <Link 
-                to={`/@${author.username}`}
-                className="text-sm text-muted-foreground truncate hover:underline"
-              >
+              </span>
+              <span className="text-sm text-muted-foreground truncate">
                 {formatHandle(author.username, author.instance)}
-              </Link>
+              </span>
               <span className="text-sm text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {formatRelativeTime(post.created_at)}

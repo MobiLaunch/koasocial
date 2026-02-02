@@ -1,10 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.93.3';
-import { 
-  validateActivity, 
-  validateUrl, 
-  validateJsonSize,
-  MAX_JSON_SIZE 
-} from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -321,43 +315,13 @@ Deno.serve(async (req) => {
 
     // Clone request to read body multiple times
     const bodyText = await req.text();
-    
-    // Validate payload size
-    const sizeValidation = validateJsonSize(bodyText);
-    if (!sizeValidation.valid) {
-      console.warn('[activitypub-inbox] Payload too large');
-      return new Response(
-        JSON.stringify({ error: 'Request payload too large' }),
-        { status: 413, headers: corsHeaders }
-      );
-    }
-
-    let activity;
-    try {
-      activity = JSON.parse(bodyText);
-    } catch {
-      console.warn('[activitypub-inbox] Invalid JSON payload');
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON payload' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Validate activity structure
-    const activityValidation = validateActivity(activity);
-    if (!activityValidation.valid) {
-      console.warn('[activitypub-inbox] Invalid activity:', activityValidation.error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid activity format' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
+    const activity = JSON.parse(bodyText);
 
     // Require signature headers for authenticated ActivityPub requests
     if (!signatureHeader || !dateHeader) {
-      console.warn('[activitypub-inbox] Missing required signature headers');
+      console.warn('Missing required signature headers');
       return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
+        JSON.stringify({ error: 'Missing required signature headers (Signature, Date)' }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -380,7 +344,7 @@ Deno.serve(async (req) => {
     try {
       remoteActor = await fetchRemoteActor(activity.actor, supabase);
     } catch (fetchError) {
-      console.error('[activitypub-inbox] Failed to fetch remote actor:', fetchError);
+      console.error('Failed to fetch remote actor:', fetchError);
       await supabase
         .from('federation_activities')
         .update({ 
@@ -391,14 +355,14 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Unable to process request' }),
+        JSON.stringify({ error: 'Failed to fetch remote actor' }),
         { status: 502, headers: corsHeaders }
       );
     }
 
     // Verify the actor has a public key
     if (!remoteActor.public_key) {
-      console.error('[activitypub-inbox] Remote actor has no public key');
+      console.error('Remote actor has no public key');
       await supabase
         .from('federation_activities')
         .update({ 
@@ -409,7 +373,7 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
+        JSON.stringify({ error: 'Remote actor has no public key' }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -427,7 +391,7 @@ Deno.serve(async (req) => {
     );
 
     if (!isValidSignature) {
-      console.error('[activitypub-inbox] Invalid HTTP signature from:', activity.actor);
+      console.error('Invalid HTTP signature from:', activity.actor);
       await supabase
         .from('federation_activities')
         .update({ 
@@ -438,7 +402,7 @@ Deno.serve(async (req) => {
         .eq('activity_id', activityLogId);
       
       return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
+        JSON.stringify({ error: 'Invalid signature' }),
         { status: 401, headers: corsHeaders }
       );
     }
