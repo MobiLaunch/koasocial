@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, Globe, Bell, User, Feather } from 'lucide-react';
+import { Home, Search, MessageCircle, Bell, User, Feather } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,7 @@ interface MobileBottomNavProps {
 const navItems = [
   { icon: Home, label: 'Home', path: '/home' },
   { icon: Search, label: 'Search', path: '/search' },
-  { icon: Globe, label: 'Public', path: '/public' },
+  { icon: MessageCircle, label: 'Messages', path: '/messages' },
   { icon: Bell, label: 'Alerts', path: '/notifications', badge: true },
   { icon: User, label: 'Profile', path: '/profile' },
 ];

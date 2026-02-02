@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Home as HomeIcon, Loader2, Sparkles, RefreshCw, Plus } from 'lucide-react';
+import { Home as HomeIcon, Loader2, Sparkles, RefreshCw, Plus, Globe } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
+import { FederatedPostCard, type FederatedPost } from '@/components/FederatedPostCard';
 import { ComposeModal } from '@/components/ComposeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserInteractions, type Post } from '@/lib/api';
@@ -10,8 +11,13 @@ import { seedDatabase, checkIfSeedDataExists } from '@/lib/seedData';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PAGE_SIZE = 15;
+
+type MixedPost = 
+  | { type: 'local'; data: Post; sortDate: Date }
+  | { type: 'federated'; data: FederatedPost; sortDate: Date };
 
 export default function HomePage() {
   const { profile } = useAuth();
@@ -19,10 +25,36 @@ export default function HomePage() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedDataExists, setSeedDataExists] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<'home' | 'fediverse'>('home');
+  const [federatedPosts, setFederatedPosts] = useState<FederatedPost[]>([]);
+  const [federatedLoading, setFederatedLoading] = useState(false);
 
   useEffect(() => {
     checkIfSeedDataExists().then(setSeedDataExists);
   }, []);
+
+  const loadFederatedPosts = async () => {
+    setFederatedLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-trending');
+      
+      if (error) throw error;
+      
+      if (data?.success && data.posts) {
+        setFederatedPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Error loading federated posts:', error);
+    } finally {
+      setFederatedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'fediverse' && federatedPosts.length === 0) {
+      loadFederatedPosts();
+    }
+  }, [activeTab]);
 
   const fetchPosts = useCallback(async (cursor?: string) => {
     let query = supabase
@@ -125,8 +157,8 @@ export default function HomePage() {
 
   return (
     <div className="animate-fade-in">
-      <header className="hidden lg:block sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <HomeIcon className="h-6 w-6 text-primary" />
             <h1 className="font-display text-xl font-bold text-foreground">Home</h1>
@@ -140,123 +172,175 @@ export default function HomePage() {
             <span className="hidden sm:inline">New Post</span>
           </Button>
         </div>
+
+        {/* Tabs for Home / Fediverse */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="home" className="flex-1 gap-2">
+              <HomeIcon className="h-4 w-4" />
+              Home
+            </TabsTrigger>
+            <TabsTrigger value="fediverse" className="flex-1 gap-2">
+              <Globe className="h-4 w-4" />
+              Fediverse
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </header>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
-            <div className="text-2xl font-bold text-white">K</div>
-          </div>
-          <p className="text-sm text-muted-foreground">Loading your timeline...</p>
-        </div>
-      ) : isEmptyTimeline ? (
-        <div className="p-6 max-w-lg mx-auto">
-          <Card className="p-8 text-center space-y-6">
-            <div className="flex justify-center">
-              <div className="h-20 w-20 rounded-3xl koa-gradient flex items-center justify-center">
-                <div className="text-5xl font-bold text-white">K</div>
+      {/* Home Tab */}
+      {activeTab === 'home' && (
+        <>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="h-12 w-12 rounded-2xl koa-gradient flex items-center justify-center animate-pulse">
+                <div className="text-2xl font-bold text-white">K</div>
               </div>
+              <p className="text-sm text-muted-foreground">Loading your timeline...</p>
             </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Welcome to KoaSocial!</h2>
-              <p className="text-muted-foreground">
-                This is a warm, friendly place to connect and share. Let's get you started!
-              </p>
-            </div>
+          ) : isEmptyTimeline ? (
+            <div className="p-6 max-w-lg mx-auto">
+              <Card className="p-8 text-center space-y-6">
+                <div className="flex justify-center">
+                  <div className="h-20 w-20 rounded-3xl koa-gradient flex items-center justify-center">
+                    <div className="text-5xl font-bold text-white">K</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-foreground">Welcome to KoaSocial!</h2>
+                  <p className="text-muted-foreground">
+                    This is a warm, friendly place to connect and share. Let's get you started!
+                  </p>
+                </div>
 
-            {showSeedOption && (
-              <div className="space-y-4 pt-4">
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-primary mt-0.5" />
-                    <div className="text-left flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">New here?</h3>
-                      <p className="text-sm text-muted-foreground">
-                        We can add some example content and friendly accounts to help you explore KoaSocial!
-                      </p>
+                {showSeedOption && (
+                  <div className="space-y-4 pt-4">
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-start gap-3 mb-3">
+                        <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                        <div className="text-left flex-1">
+                          <h3 className="font-semibold text-foreground mb-1">New here?</h3>
+                          <p className="text-sm text-muted-foreground">
+                            We can add some example content and friendly accounts to help you explore KoaSocial!
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleSeedDatabase}
+                        disabled={isSeeding}
+                        className="w-full gap-2"
+                        variant="default"
+                      >
+                        {isSeeding ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Setting up...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Add Example Content
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
+                      Or skip ahead and...
                     </div>
                   </div>
+                )}
+
+                <div className="space-y-3">
                   <Button
-                    onClick={handleSeedDatabase}
-                    disabled={isSeeding}
+                    onClick={() => setComposeOpen(true)}
+                    size="lg"
                     className="w-full gap-2"
-                    variant="default"
+                    variant={showSeedOption ? "outline" : "default"}
                   >
-                    {isSeeding ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Setting up...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Add Example Content
-                      </>
-                    )}
+                    <Plus className="h-5 w-5" />
+                    Share Your First Post
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground">
+                    Or check out the{' '}
+                    <button 
+                      onClick={() => setActiveTab('fediverse')} 
+                      className="text-primary hover:underline"
+                    >
+                      Fediverse tab
+                    </button>{' '}
+                    to see what's trending
+                  </p>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onInteractionChange={refresh}
+                />
+              ))}
+              
+              <div ref={sentinelRef} className="h-1" />
+              
+              {loadingMore && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+              
+              {!hasMore && posts.length > 0 && (
+                <div className="p-8 text-center space-y-3">
+                  <p className="text-muted-foreground">You're all caught up!</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setComposeOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Share something new
                   </Button>
                 </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
-                <div className="text-sm text-muted-foreground">
-                  Or skip ahead and...
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Button
-                onClick={() => setComposeOpen(true)}
-                size="lg"
-                className="w-full gap-2"
-                variant={showSeedOption ? "outline" : "default"}
-              >
-                <Plus className="h-5 w-5" />
-                Share Your First Post
-              </Button>
-
-              <p className="text-xs text-muted-foreground">
-                You can also explore the{' '}
-                <a href="/public" className="text-primary hover:underline">
-                  public timeline
-                </a>{' '}
-                to discover others
+      {/* Fediverse Tab */}
+      {activeTab === 'fediverse' && (
+        <>
+          {federatedLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Globe className="h-10 w-10 text-primary animate-pulse" />
+              <p className="text-sm text-muted-foreground">Loading from the Fediverse...</p>
+            </div>
+          ) : federatedPosts.length > 0 ? (
+            <div className="divide-y divide-border">
+              {federatedPosts.map((post) => (
+                <FederatedPostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg font-medium text-foreground mb-2">No federated posts available</p>
+              <p className="text-muted-foreground mb-4">
+                Check back later for posts from across the Fediverse!
               </p>
-            </div>
-          </Card>
-        </div>
-      ) : (
-        <div className="divide-y divide-border">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onInteractionChange={refresh}
-            />
-          ))}
-          
-          <div ref={sentinelRef} className="h-1" />
-          
-          {loadingMore && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          )}
-          
-          {!hasMore && posts.length > 0 && (
-            <div className="p-8 text-center space-y-3">
-              <p className="text-muted-foreground">You're all caught up!</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setComposeOpen(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Share something new
+              <Button onClick={loadFederatedPosts} variant="outline" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
               </Button>
             </div>
           )}
-        </div>
+        </>
       )}
 
       <Button
