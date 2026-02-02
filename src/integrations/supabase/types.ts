@@ -617,7 +617,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      actor_keys_public: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          profile_id: string | null
+          public_key: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          public_key?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          public_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actor_keys_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
