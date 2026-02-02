@@ -1,4 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.93.3';
+import { 
+  validateActivity, 
+  validateUrl, 
+  validateJsonSize,
+  MAX_JSON_SIZE 
+} from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -315,13 +321,43 @@ Deno.serve(async (req) => {
 
     // Clone request to read body multiple times
     const bodyText = await req.text();
-    const activity = JSON.parse(bodyText);
+    
+    // Validate payload size
+    const sizeValidation = validateJsonSize(bodyText);
+    if (!sizeValidation.valid) {
+      console.warn('[activitypub-inbox] Payload too large');
+      return new Response(
+        JSON.stringify({ error: 'Request payload too large' }),
+        { status: 413, headers: corsHeaders }
+      );
+    }
+
+    let activity;
+    try {
+      activity = JSON.parse(bodyText);
+    } catch {
+      console.warn('[activitypub-inbox] Invalid JSON payload');
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON payload' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate activity structure
+    const activityValidation = validateActivity(activity);
+    if (!activityValidation.valid) {
+      console.warn('[activitypub-inbox] Invalid activity:', activityValidation.error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid activity format' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Require signature headers for authenticated ActivityPub requests
     if (!signatureHeader || !dateHeader) {
-      console.warn('Missing required signature headers');
+      console.warn('[activitypub-inbox] Missing required signature headers');
       return new Response(
-        JSON.stringify({ error: 'Missing required signature headers (Signature, Date)' }),
+        JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: corsHeaders }
       );
     }
