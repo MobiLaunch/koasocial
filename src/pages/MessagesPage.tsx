@@ -42,7 +42,7 @@ export default function MessagesPage() {
 
     setLoading(true);
     try {
-      // Get all conversations this user is part of
+      // 1. Get my participations
       const { data: participations, error: partError } = await supabase
         .from("conversation_participants")
         .select("conversation_id, last_read_at")
@@ -51,14 +51,13 @@ export default function MessagesPage() {
       if (partError) throw partError;
       if (!participations?.length) {
         setConversations([]);
-        setLoading(false);
         return;
       }
 
       const conversationIds = participations.map((p) => p.conversation_id);
       const lastReadMap = new Map(participations.map((p) => [p.conversation_id, p.last_read_at]));
 
-      // Get conversation details
+      // 2. Get conversation details
       const { data: convos, error: convoError } = await supabase
         .from("conversations")
         .select("id, updated_at")
@@ -67,25 +66,24 @@ export default function MessagesPage() {
 
       if (convoError) throw convoError;
 
-      // Get other participants for each conversation
-      const conversationsWithParticipants: ConversationWithParticipant[] = [];
+      const results: ConversationWithParticipant[] = [];
 
+      // 3. Hydrate conversations with participant and message data
       for (const convo of convos || []) {
-        // Get the other participant
-        const { data: otherParticipants } = await supabase
+        const { data: otherPart } = await supabase
           .from("conversation_participants")
           .select("profile_id")
           .eq("conversation_id", convo.id)
-          .neq("profile_id", profile.id);
+          .neq("profile_id", profile.id)
+          .maybeSingle();
 
-        if (otherParticipants?.[0]) {
+        if (otherPart) {
           const { data: otherProfile } = await supabase
             .from("profiles")
             .select("id, display_name, username, avatar_url")
-            .eq("id", otherParticipants[0].profile_id)
+            .eq("id", otherPart.profile_id)
             .single();
 
-          // Get last message
           const { data: messages } = await supabase
             .from("messages")
             .select("content, sender_id, created_at")
@@ -93,40 +91,29 @@ export default function MessagesPage() {
             .order("created_at", { ascending: false })
             .limit(1);
 
-          // Count unread messages
           const lastRead = lastReadMap.get(convo.id);
-          let unreadQuery = supabase
+          const { count } = await supabase
             .from("messages")
             .select("id", { count: "exact", head: true })
             .eq("conversation_id", convo.id)
-            .neq("sender_id", profile.id);
-
-          if (lastRead) {
-            unreadQuery = unreadQuery.gt("created_at", lastRead);
-          }
-
-          const { count: unreadCount } = await unreadQuery;
+            .neq("sender_id", profile.id)
+            .gt("created_at", lastRead || "1970-01-01");
 
           if (otherProfile) {
-            conversationsWithParticipants.push({
+            results.push({
               id: convo.id,
               updated_at: convo.updated_at,
               participant: otherProfile,
               lastMessage: messages?.[0],
-              unreadCount: unreadCount || 0,
+              unreadCount: count || 0,
             });
           }
         }
       }
-
-      setConversations(conversationsWithParticipants);
+      setConversations(results);
     } catch (error: any) {
       console.error("Error loading conversations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load conversations",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load conversations", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -135,18 +122,24 @@ export default function MessagesPage() {
   useEffect(() => {
     loadConversations();
 
-    // Listen for new messages to refresh the conversation list automatically
+    // Realtime subscription to refresh list on new messages
     const channel = supabase
-      .channel("messages-update")
+      .channel("messages-refresh")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
-        loadConversations(); // Reload the list to show the new 'last message' and unread count
+        loadConversations();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }
+  }, [profile]);
+
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.participant.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.participant.username.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   if (selectedConversation) {
     return (
@@ -161,93 +154,71 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
+    <div className="animate-fade-in pb-20 sm:pb-0">
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <MessageCircle className="h-6 w-6 text-primary" />
-            <h1 className="font-display text-xl font-bold text-foreground">Messages</h1>
+            <h1 className="font-bold text-xl">Messages</h1>
           </div>
-          <Button size="sm" onClick={() => setNewMessageOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">New</span>
+          <Button size="sm" onClick={() => setNewMessageOpen(true)} className="rounded-full">
+            <Plus className="h-4 w-4 mr-2" />
+            New
           </Button>
         </div>
-
-        {/* Search */}
         <div className="relative mt-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-secondary/50 border-none rounded-full"
           />
         </div>
       </header>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-4">
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading conversations...</p>
         </div>
       ) : conversations.length === 0 ? (
-        <div className="p-6 max-w-lg mx-auto">
-          <Card className="p-8 text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <MessageCircle className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">No messages yet</h2>
-              <p className="text-muted-foreground">Start a conversation with someone!</p>
-            </div>
-            <Button onClick={() => setNewMessageOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Message
-            </Button>
+        <div className="p-6 text-center py-20">
+          <Card className="p-8 space-y-4 border-dashed">
+            <h2 className="text-xl font-bold">No messages yet</h2>
+            <p className="text-muted-foreground">Sent messages will appear here.</p>
+            <Button onClick={() => setNewMessageOpen(true)}>Start a conversation</Button>
           </Card>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y">
           {filteredConversations.map((convo) => (
             <button
               key={convo.id}
               onClick={() => setSelectedConversation(convo.id)}
-              className="w-full p-4 flex items-center gap-3 hover:bg-accent/50 transition-colors text-left"
+              className="w-full p-4 flex items-center gap-3 hover:bg-secondary/30 transition-colors text-left"
             >
-              <Avatar className="h-12 w-12 ring-2 ring-background">
+              <Avatar className="h-12 w-12">
                 <AvatarImage src={convo.participant.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {convo.participant.display_name.charAt(0)}
-                </AvatarFallback>
+                <AvatarFallback>{convo.participant.display_name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`font-semibold truncate ${convo.unreadCount > 0 ? "text-foreground" : "text-foreground"}`}
-                  >
-                    {convo.participant.display_name}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold truncate">{convo.participant.display_name}</span>
                   {convo.lastMessage && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(convo.lastMessage.created_at), { addSuffix: true })}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {convo.lastMessage && convo.lastMessage.sender_id === profile?.id && (
-                    <CheckCheck className="h-3 w-3 text-primary flex-shrink-0" />
-                  )}
+                <div className="flex items-center gap-1">
+                  {convo.lastMessage?.sender_id === profile?.id && <CheckCheck className="h-3 w-3 text-primary" />}
                   <p
-                    className={`text-sm truncate ${convo.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                    className={`text-sm truncate ${convo.unreadCount > 0 ? "font-bold text-foreground" : "text-muted-foreground"}`}
                   >
-                    {convo.lastMessage?.content || "No messages yet"}
+                    {convo.lastMessage?.content || "Started a conversation"}
                   </p>
                   {convo.unreadCount > 0 && (
-                    <span className="ml-auto flex-shrink-0 h-5 min-w-5 px-1.5 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center">
+                    <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                       {convo.unreadCount}
                     </span>
                   )}
@@ -261,9 +232,9 @@ export default function MessagesPage() {
       <NewMessageModal
         isOpen={newMessageOpen}
         onClose={() => setNewMessageOpen(false)}
-        onConversationCreated={(conversationId) => {
+        onConversationCreated={(id) => {
           setNewMessageOpen(false);
-          setSelectedConversation(conversationId);
+          setSelectedConversation(id);
         }}
       />
     </div>
