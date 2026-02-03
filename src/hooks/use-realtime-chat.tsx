@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 
 export interface ChatMessage {
@@ -23,6 +23,7 @@ export function useRealtimeChat({
   initialMessages = [],
 }: UseRealtimeChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   useEffect(() => {
     setMessages(initialMessages)
@@ -30,19 +31,28 @@ export function useRealtimeChat({
 
   useEffect(() => {
     const channel = supabase.channel(`room:${roomName}`)
+    channelRef.current = channel
 
     channel
       .on(
         'broadcast',
         { event: 'message' },
         ({ payload }: { payload: ChatMessage }) => {
-          setMessages((prev) => [...prev, payload])
+          setMessages((prev) => {
+            if (prev.some((message) => message.id === payload.id)) {
+              return prev
+            }
+            return [...prev, payload]
+          })
         }
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
+      if (channelRef.current === channel) {
+        channelRef.current = null
+      }
     }
   }, [roomName])
 
@@ -59,16 +69,14 @@ export function useRealtimeChat({
     setMessages((prev) => [...prev, newMessage])
 
     // Broadcast to others
-    const channel = supabase.channel(`room:${roomName}`)
-    await channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.send({
-          type: 'broadcast',
-          event: 'message',
-          payload: { ...newMessage, isOwnMessage: false },
-        })
-      }
-    })
+    const channel = channelRef.current
+    if (channel) {
+      await channel.send({
+        type: 'broadcast',
+        event: 'message',
+        payload: { ...newMessage, isOwnMessage: false },
+      })
+    }
 
     return newMessage
   }

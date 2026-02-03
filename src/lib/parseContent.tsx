@@ -96,7 +96,7 @@ export function ParsedContent({ content, className }: ParsedContentProps) {
             return (
               <Link
                 key={index}
-                to={`/user/${part.value}`}
+                to={`/@${part.value}`}
                 className="text-primary hover:underline transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
