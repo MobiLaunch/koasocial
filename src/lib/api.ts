@@ -28,7 +28,7 @@ export interface Post {
   replies_count?: number;
   is_favorited?: boolean;
   is_boosted?: boolean;
-  boosted_by?: string | null;
+  boosted_by?: Profile | null;
 }
 
 export interface Notification {
@@ -43,7 +43,9 @@ export interface Notification {
   post?: Post;
 }
 
-// 1. Fetch Profile with counts
+/**
+ * 1. Fetch Profile with local counts
+ */
 export async function fetchProfile(username: string): Promise<Profile | null> {
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("username", username).single();
 
@@ -63,7 +65,9 @@ export async function fetchProfile(username: string): Promise<Profile | null> {
   } as Profile;
 }
 
-// 2. Fetch Posts
+/**
+ * 2. Fetch Posts (Centralized)
+ */
 export async function fetchPosts(): Promise<Post[]> {
   const { data, error } = await supabase
     .from("posts")
@@ -74,7 +78,10 @@ export async function fetchPosts(): Promise<Post[]> {
   return data as Post[];
 }
 
-// 3. Create Post (Fixed argument count for UI)
+/**
+ * 3. Create Post
+ * Fixed: Accepting 5 arguments to match ComposeModal.tsx usage
+ */
 export async function createPost(
   authorId: string,
   content: string,
@@ -98,17 +105,24 @@ export async function createPost(
   return data as Post;
 }
 
-// 4. Interaction Placeholders
+/**
+ * 4. Interactions
+ * Fixed: Added profileId as an optional parameter to match Page calls
+ */
 export async function getUserInteractions(profileId?: string, postIds: string[] = []) {
-  return { favoritedPostIds: new Set<string>(), boostedPostIds: new Set<string>() };
+  return {
+    favoritedPostIds: new Set<string>(),
+    boostedPostIds: new Set<string>(),
+  };
 }
 
-export async function toggleFavorite(profileId: string, postId: string, active: boolean) {}
-export async function toggleBoost(profileId: string, postId: string, active: boolean) {}
-export async function fetchNotifications(profileId: string) {
-  return [];
+export async function toggleFavorite(profileId: string, postId: string, active: boolean) {
+  // Logic for favorites table goes here
 }
-export async function markNotificationsRead(profileId: string) {}
+
+export async function toggleBoost(profileId: string, postId: string, active: boolean) {
+  // Logic for boosts table goes here
+}
 
 export async function toggleFollow(followerId: string, followingId: string, isFollowing: boolean) {
   if (isFollowing) {
@@ -117,3 +131,8 @@ export async function toggleFollow(followerId: string, followingId: string, isFo
     await supabase.from("follows").insert({ follower_id: followerId, following_id: followingId });
   }
 }
+
+export async function fetchNotifications(profileId: string) {
+  return [];
+}
+export async function markNotificationsRead(profileId: string) {}
