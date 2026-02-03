@@ -465,50 +465,59 @@ export type Database = {
       }
       profiles: {
         Row: {
+          actor_id: string | null
           avatar_url: string | null
           banner_url: string | null
           bio: string | null
           created_at: string
           display_name: string
           id: string
+          inbox_url: string | null
           instance: string | null
           interests: string[] | null
           is_verified: boolean | null
+          public_key: string | null
           social_links: Json | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           username: string
           verification_tier: string | null
         }
         Insert: {
+          actor_id?: string | null
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name: string
           id?: string
+          inbox_url?: string | null
           instance?: string | null
           interests?: string[] | null
           is_verified?: boolean | null
+          public_key?: string | null
           social_links?: Json | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           username: string
           verification_tier?: string | null
         }
         Update: {
+          actor_id?: string | null
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string
           id?: string
+          inbox_url?: string | null
           instance?: string | null
           interests?: string[] | null
           is_verified?: boolean | null
+          public_key?: string | null
           social_links?: Json | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           username?: string
           verification_tier?: string | null
         }
@@ -648,7 +657,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_or_create_conversation: {
+        Args: { user_a: string; user_b: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
