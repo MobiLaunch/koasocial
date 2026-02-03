@@ -59,10 +59,10 @@ export const NewMessageModal = ({ isOpen, onClose, onConversationCreated }: NewM
     setIsCreating(true);
 
     try {
-      // Updated to match your new SQL function parameters
-      const { data: conversationId, error } = await (supabase.rpc as any)("get_or_create_conversation", {
-        p_user_id: profile.id,
-        p_target_id: targetUser.id,
+      // Call the function with correct parameter names
+      const { data: conversationId, error } = await supabase.rpc("get_or_create_conversation", {
+        user_a: profile.id,
+        user_b: targetUser.id,
       });
 
       if (error) throw error;

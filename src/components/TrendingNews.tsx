@@ -201,7 +201,11 @@ function NewsCard({ item }: { item: NewsItem }) {
   );
 }
 
-export function TrendingNews() {
+interface TrendingNewsProps {
+  fullPage?: boolean;
+}
+
+export function TrendingNews({ fullPage = false }: TrendingNewsProps) {
   const [news, setNews] = useState<NewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -275,7 +279,7 @@ export function TrendingNews() {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className={`overflow-hidden ${fullPage ? 'border-0 shadow-none' : ''}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
@@ -302,7 +306,7 @@ export function TrendingNews() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="space-y-1 max-h-[400px] overflow-y-auto overflow-x-hidden">
+          <div className={`space-y-1 overflow-y-auto overflow-x-hidden ${fullPage ? 'max-h-none' : 'max-h-[400px]'}`}>
             {getNewsForTab().length > 0 ? (
               getNewsForTab().map((item) => (
                 <NewsCard key={item.id} item={item} />
