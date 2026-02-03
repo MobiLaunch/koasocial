@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import MainLayout from "./layouts/MainLayout";
@@ -67,7 +66,6 @@ const AppRoutes = () => (
   <Routes>
     {/* Public routes */}
     <Route path="/" element={<LandingPage />} />
-
     <Route
       path="/auth"
       element={
@@ -76,9 +74,6 @@ const AppRoutes = () => (
         </AuthRoute>
       }
     />
-
-    {/* 🔓 PUBLIC USER PROFILES (IMPORTANT) */}
-    <Route path="/@:username" element={<UserProfilePage />} />
 
     {/* Protected routes with sidebar */}
     <Route
@@ -96,6 +91,7 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/profile/edit" element={<ProfileEditPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/@:username" element={<UserProfilePage />} />
     </Route>
 
     {/* Catch-all */}
