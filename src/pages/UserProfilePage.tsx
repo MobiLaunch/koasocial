@@ -29,7 +29,7 @@ export default function UserProfilePage() {
   const loadProfile = async () => {
     if (!cleanUsername) return;
     
-    const loadProfile = async () => {
+  const loadProfile = async () => {
   if (!identifier) return;
   
   setLoading(true);
