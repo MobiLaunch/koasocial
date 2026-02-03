@@ -10,6 +10,10 @@ DECLARE
   existing_conversation_id UUID;
   new_conversation_id UUID;
 BEGIN
+  IF p_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'p_user_id must match authenticated user';
+  END IF;
+
   SELECT cp1.conversation_id
   INTO existing_conversation_id
   FROM conversation_participants cp1
