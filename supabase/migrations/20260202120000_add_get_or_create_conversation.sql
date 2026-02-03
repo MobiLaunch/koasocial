@@ -9,8 +9,13 @@ AS $$
 DECLARE
   existing_conversation_id UUID;
   new_conversation_id UUID;
+  v_user_id UUID;
 BEGIN
-  IF p_user_id IS DISTINCT FROM auth.uid() THEN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'authenticated user required';
+  END IF;
+  IF p_user_id IS DISTINCT FROM v_user_id THEN
     RAISE EXCEPTION 'p_user_id must match authenticated user';
   END IF;
 
@@ -19,7 +24,7 @@ BEGIN
   FROM conversation_participants cp1
   JOIN conversation_participants cp2
     ON cp1.conversation_id = cp2.conversation_id
-  WHERE cp1.profile_id = p_user_id
+  WHERE cp1.profile_id = v_user_id
     AND cp2.profile_id = p_target_id
   LIMIT 1;
 
@@ -31,7 +36,7 @@ BEGIN
   RETURNING id INTO new_conversation_id;
 
   INSERT INTO conversation_participants (conversation_id, profile_id)
-  VALUES (new_conversation_id, p_user_id),
+  VALUES (new_conversation_id, v_user_id),
          (new_conversation_id, p_target_id);
 
   RETURN new_conversation_id;
