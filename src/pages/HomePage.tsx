@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Home as HomeIcon, Loader2, Sparkles, RefreshCw, Plus, Globe } from 'lucide-react';
+import { Home as HomeIcon, Loader2, Sparkles, Plus, Newspaper } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
-import { FederatedPostCard, type FederatedPost } from '@/components/FederatedPostCard';
+import { TrendingNews } from '@/components/TrendingNews';
 import { ComposeModal } from '@/components/ComposeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserInteractions, type Post } from '@/lib/api';
@@ -15,46 +15,17 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PAGE_SIZE = 15;
 
-type MixedPost = 
-  | { type: 'local'; data: Post; sortDate: Date }
-  | { type: 'federated'; data: FederatedPost; sortDate: Date };
-
 export default function HomePage() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [composeOpen, setComposeOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedDataExists, setSeedDataExists] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'fediverse'>('home');
-  const [federatedPosts, setFederatedPosts] = useState<FederatedPost[]>([]);
-  const [federatedLoading, setFederatedLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'home' | 'news'>('home');
 
   useEffect(() => {
     checkIfSeedDataExists().then(setSeedDataExists);
   }, []);
-
-  const loadFederatedPosts = async () => {
-    setFederatedLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-trending');
-      
-      if (error) throw error;
-      
-      if (data?.success && data.posts) {
-        setFederatedPosts(data.posts);
-      }
-    } catch (error) {
-      console.error('Error loading federated posts:', error);
-    } finally {
-      setFederatedLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'fediverse' && federatedPosts.length === 0) {
-      loadFederatedPosts();
-    }
-  }, [activeTab]);
 
   const fetchPosts = useCallback(async (cursor?: string) => {
     let query = supabase
@@ -173,16 +144,16 @@ export default function HomePage() {
           </Button>
         </div>
 
-        {/* Tabs for Home / Fediverse */}
+        {/* Tabs for Home / News */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
           <TabsList className="w-full">
             <TabsTrigger value="home" className="flex-1 gap-2">
               <HomeIcon className="h-4 w-4" />
               Home
             </TabsTrigger>
-            <TabsTrigger value="fediverse" className="flex-1 gap-2">
-              <Globe className="h-4 w-4" />
-              Fediverse
+            <TabsTrigger value="news" className="flex-1 gap-2">
+              <Newspaper className="h-4 w-4" />
+              News
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -266,10 +237,10 @@ export default function HomePage() {
                   <p className="text-xs text-muted-foreground">
                     Or check out the{' '}
                     <button 
-                      onClick={() => setActiveTab('fediverse')} 
+                      onClick={() => setActiveTab('news')} 
                       className="text-primary hover:underline"
                     >
-                      Fediverse tab
+                      News tab
                     </button>{' '}
                     to see what's trending
                   </p>
@@ -313,34 +284,11 @@ export default function HomePage() {
         </>
       )}
 
-      {/* Fediverse Tab */}
-      {activeTab === 'fediverse' && (
-        <>
-          {federatedLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Globe className="h-10 w-10 text-primary animate-pulse" />
-              <p className="text-sm text-muted-foreground">Loading from the Fediverse...</p>
-            </div>
-          ) : federatedPosts.length > 0 ? (
-            <div className="divide-y divide-border">
-              {federatedPosts.map((post) => (
-                <FederatedPostCard key={post.id} post={post} />
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center">
-              <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium text-foreground mb-2">No federated posts available</p>
-              <p className="text-muted-foreground mb-4">
-                Check back later for posts from across the Fediverse!
-              </p>
-              <Button onClick={loadFederatedPosts} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
-          )}
-        </>
+      {/* News Tab */}
+      {activeTab === 'news' && (
+        <div className="p-4">
+          <TrendingNews fullPage />
+        </div>
       )}
 
       <Button

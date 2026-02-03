@@ -22,8 +22,8 @@ const features = [
   },
   {
     icon: Globe,
-    title: 'Federated future',
-    description: 'Built for the open web with ActivityPub federation coming soon.',
+    title: 'Global reach',
+    description: 'Stay connected with trending news and a growing community.',
   },
 ];
 
@@ -63,7 +63,7 @@ export default function LandingPage() {
 
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
             Join koasocial — a warm, friendly space where you can share your thoughts, 
-            connect with like-minded people, and be part of an open, federated network.
+            connect with like-minded people, and stay informed with trending news.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

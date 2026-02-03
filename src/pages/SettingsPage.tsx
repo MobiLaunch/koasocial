@@ -222,7 +222,7 @@ export default function SettingsPage() {
         {/* App Info */}
         <div className="text-center pt-4 pb-8 text-sm text-muted-foreground">
           <p>Koa Social v1.0.0</p>
-          <p className="mt-1">Made with 💚 for the fediverse</p>
+          <p className="mt-1">Made with 💚 for connection</p>
         </div>
       </div>
     </div>

@@ -657,9 +657,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_my_profile_id: { Args: never; Returns: string }
       get_or_create_conversation: {
         Args: { user_a: string; user_b: string }
         Returns: string
+      }
+      is_participant_in_conversation: {
+        Args: { conv_id: string }
+        Returns: boolean
       }
     }
     Enums: {
