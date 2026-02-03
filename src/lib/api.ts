@@ -107,9 +107,11 @@ export async function createPost(
 
 /**
  * 4. Interactions
- * Fixed: Added profileId as an optional parameter to match Page calls
+ * FIXED: Added profileId as an optional parameter to resolve TS2554 errors in Page files
  */
 export async function getUserInteractions(profileId?: string, postIds: string[] = []) {
+  // This currently returns empty sets to satisfy the UI types
+  // You can later implement logic here to fetch the actual likes/boosts for the user
   return {
     favoritedPostIds: new Set<string>(),
     boostedPostIds: new Set<string>(),
