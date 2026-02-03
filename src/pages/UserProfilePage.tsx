@@ -1,74 +1,72 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PostCard } from "@/components/PostCard";
-import { SocialLinksDisplay } from "@/components/SocialLinksDisplay";
-import { VerifiedBadge } from "@/components/VerifiedBadge";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchPosts, fetchProfile, getUserInteractions, toggleFollow, type Post, type Profile } from "@/lib/api";
-import { formatCount, formatHandle } from "@/lib/formatters";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Calendar, Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PostCard } from '@/components/PostCard';
+import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchPosts, fetchProfile, getUserInteractions, toggleFollow, type Post, type Profile } from '@/lib/api';
+import { formatCount, formatHandle } from '@/lib/formatters';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UserProfilePage() {
-  const { username } = useParams<{ username: string }>(); // This 'username' param will now sometimes be a UUID
+  const { username } = useParams<{ username: string }>();
   const { profile: currentProfile } = useAuth();
   const { toast } = useToast();
-
+  
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const identifier = username?.replace("@", "") || "";
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
 
-  const cleanUsername = username?.replace("@", "") || "";
+  const cleanUsername = username?.replace('@', '') || '';
 
   const loadProfile = async () => {
     if (!cleanUsername) return;
+    
+    const loadProfile = async () => {
+  if (!identifier) return;
+  
+  setLoading(true);
+  try {
+    // Dynamically choose to search by 'id' or 'username'
+    const { data: profileData, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq(isUuid ? 'id' : 'username', identifier) 
+      .single();
 
-    setLoading(true);
-    try {
-      const profileData = await fetchProfile(cleanUsername);
-      setProfile(profileData);
-
-      if (profileData) {
-        // Check if current user follows this profile
-        if (currentProfile && currentProfile.id !== profileData.id) {
-          const { data: followData } = await supabase
-            .from("follows")
-            .select("id")
-            .eq("follower_id", currentProfile.id)
-            .eq("following_id", profileData.id)
-            .single();
-
+    if (error) throw error;
+    setProfile(profileData as Profile);
+          
           setIsFollowing(!!followData);
         }
 
         // Load posts
         const fetchedPosts = await fetchPosts({ authorId: profileData.id });
-
+        
         if (currentProfile && fetchedPosts.length > 0) {
-          const postIds = fetchedPosts.map((p) => p.id);
+          const postIds = fetchedPosts.map(p => p.id);
           const interactions = await getUserInteractions(currentProfile.id, postIds);
-
-          const postsWithInteractions = fetchedPosts.map((post) => ({
+          
+          const postsWithInteractions = fetchedPosts.map(post => ({
             ...post,
             is_favorited: interactions.favoritedPostIds.has(post.id),
             is_boosted: interactions.boostedPostIds.has(post.id),
           }));
-
+          
           setPosts(postsWithInteractions);
         } else {
           setPosts(fetchedPosts);
         }
       }
     } catch (error) {
-      console.error("Error loading profile:", error);
+      console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
     }
@@ -80,26 +78,22 @@ export default function UserProfilePage() {
 
   const handleFollow = async () => {
     if (!currentProfile || !profile) return;
-
+    
     setFollowLoading(true);
     try {
       await toggleFollow(currentProfile.id, profile.id, isFollowing);
       setIsFollowing(!isFollowing);
-
+      
       // Update follower count locally
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              followers_count: (prev.followers_count || 0) + (isFollowing ? -1 : 1),
-            }
-          : null,
-      );
+      setProfile(prev => prev ? {
+        ...prev,
+        followers_count: (prev.followers_count || 0) + (isFollowing ? -1 : 1),
+      } : null);
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setFollowLoading(false);
@@ -126,9 +120,9 @@ export default function UserProfilePage() {
     );
   }
 
-  const joinedDate = new Date(profile.created_at).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
+  const joinedDate = new Date(profile.created_at).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
   });
 
   const isOwnProfile = currentProfile?.id === profile.id;
@@ -138,7 +132,12 @@ export default function UserProfilePage() {
       {/* Header - hidden on mobile since we have MobileHeader */}
       <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.history.back()}
+            className="rounded-full"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -151,7 +150,11 @@ export default function UserProfilePage() {
       {/* Banner */}
       <div className="relative h-48 bg-gradient-to-br from-primary/30 to-koa-peach/30">
         {profile.banner_url && (
-          <img src={profile.banner_url} alt="Profile banner" className="w-full h-full object-cover" />
+          <img
+            src={profile.banner_url}
+            alt="Profile banner"
+            className="w-full h-full object-cover"
+          />
         )}
       </div>
 
@@ -181,11 +184,17 @@ export default function UserProfilePage() {
               disabled={followLoading}
               className={`rounded-full ${
                 isFollowing
-                  ? "bg-muted text-foreground hover:bg-destructive hover:text-destructive-foreground"
-                  : "koa-gradient text-primary-foreground hover:opacity-90"
+                  ? 'bg-muted text-foreground hover:bg-destructive hover:text-destructive-foreground'
+                  : 'koa-gradient text-primary-foreground hover:opacity-90'
               }`}
             >
-              {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? "Following" : "Follow"}
+              {followLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isFollowing ? (
+                'Following'
+              ) : (
+                'Follow'
+              )}
             </Button>
           )}
         </div>
@@ -194,13 +203,21 @@ export default function UserProfilePage() {
         <div className="mt-2">
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             {profile.display_name}
-            {(profile as any).is_verified && <VerifiedBadge tier={(profile as any).verification_tier} size="lg" />}
+            {(profile as any).is_verified && (
+              <VerifiedBadge tier={(profile as any).verification_tier} size="lg" />
+            )}
           </h1>
-          <p className="text-muted-foreground">{formatHandle(profile.username, profile.instance)}</p>
+          <p className="text-muted-foreground">
+            {formatHandle(profile.username, profile.instance)}
+          </p>
         </div>
 
         {/* Bio */}
-        {profile.bio && <p className="mt-3 text-foreground leading-relaxed">{profile.bio}</p>}
+        {profile.bio && (
+          <p className="mt-3 text-foreground leading-relaxed">
+            {profile.bio}
+          </p>
+        )}
 
         {/* Social Links */}
         {(profile as any).social_links && Object.keys((profile as any).social_links).length > 0 && (
