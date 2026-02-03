@@ -58,7 +58,7 @@ const SearchPage = () => {
           results.map((user) => (
             <Link
               key={user.id}
-              to={`/profile/${user.username}`}
+              to={`/@${user.username}`}
               className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/30 transition-colors"
             >
               <Avatar className="h-12 w-12">
