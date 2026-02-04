@@ -40,15 +40,18 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string;
+  recipient_id: string; 
   actor_id: string;
   type: string;
-  entity_id: string;
-  is_read: boolean;
-  read: boolean; // Virtual field for UI logic
+  entity_id: string | null;
+  is_read: boolean;     // The real DB column
+  read: boolean;        // The UI helper
   created_at: string;
   actor?: Profile;
   post?: Post;
+  // Temporary optional fields to prevent the "Missing Property" errors
+  user_id?: string;
+  post_id?: string;
 }
 
 // Fetch posts with author info and counts
