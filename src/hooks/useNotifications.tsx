@@ -1,81 +1,79 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import type { Notification } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchNotifications, markAllNotificationsAsRead, markNotificationAsRead, Notification } from "@/lib/api";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "sonner";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-export const useNotifications = () => {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+export function useNotifications() {
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select(`
-          *,
-          actor:profiles!notifications_actor_id_fkey(*),
-          post:posts(*)
-        `)
-        .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false });
+  // 1. Fetching Logic
+  const { 
+    data: notifications = [], 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ["notifications", profile?.id],
+    queryFn: fetchNotifications,
+    enabled: !!profile?.id, // Only run if we have a profile
+    staleTime: 1000 * 60, // Cache for 1 minute
+  });
 
-      if (error) throw error;
-
-     const formattedData = (data as any[] || []).map(n => ({
-  ...n,
-  // Ensure we map whatever the DB returns to the 'read' property the UI wants
-  read: n.is_read !== undefined ? n.is_read : n.read
-})) as Notification[];
-
-      setNotifications(formattedData);
-      setUnreadCount(formattedData.filter(n => !n.read).length);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 2. Real-time Subscription (Twitter-style updates)
   useEffect(() => {
-    if (!user) return;
-    fetchNotifications();
+    if (!profile?.id) return;
 
     const channel = supabase
-      .channel('notifications_realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`
-      }, () => {
-        fetchNotifications();
-      })
+      .channel("schema-db-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${profile.id}`,
+        },
+        () => {
+          toast("New notification received");
+          queryClient.invalidateQueries({ queryKey: ["notifications", profile.id] });
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [profile?.id, queryClient]);
 
-  const markAllAsRead = async () => {
-    if (!user) return;
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('recipient_id', user.id)
-        .eq('is_read', false);
-
-      if (error) throw error;
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error marking as read:', error);
+  // 3. Mark All Read Logic
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id) return;
+      await markAllNotificationsAsRead(profile.id);
+    },
+    onSuccess: () => {
+      // Optimistically update the UI
+      queryClient.setQueryData(["notifications", profile?.id], (old: Notification[] | undefined) => {
+        return old ? old.map(n => ({ ...n, is_read: true })) : [];
+      });
+    },
+    onError: () => {
+      toast.error("Failed to mark notifications as read");
     }
-  };
+  });
 
-  return { notifications, unreadCount, loading, markAllAsRead, refresh: fetchNotifications };
-};
+  // 4. Computed Values
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  return {
+    notifications,
+    unreadCount,
+    loading: isLoading,
+    error,
+    markAllAsRead: markAllReadMutation.mutateAsync,
+    refresh: refetch
+  };
+}
