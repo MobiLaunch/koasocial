@@ -1,211 +1,153 @@
 
-# Database Schema & Code Update Plan
+# Fix User Profile Routing Issue
 
-## Current State Analysis
+## Root Cause Analysis
 
-After investigating the codebase, I've identified the following areas that need attention:
+The user profile pages are returning 404 errors because of a **React Router v6 limitation** with dynamic route segments.
 
-### Database Schema Overview
+### The Problem
 
-The current Supabase schema includes:
-
-**Core Social Tables (In Use)**
-- `profiles` - User profiles with display names, avatars, bio, verification status
-- `posts` - User posts with content, visibility, image attachments
-- `follows` - Follow relationships between local users
-- `favorites` - Like/favorite interactions
-- `boosts` - Repost/boost interactions
-- `notifications` - Activity notifications
-- `conversations` - Direct message conversations
-- `conversation_participants` - Users in conversations
-- `messages` - Direct messages
-
-**Federation Tables (No Longer Needed)**
-- `federation_activities` - ActivityPub activity logs
-- `federation_follows` - Cross-instance follow relationships
-- `remote_actors` - Cached remote user profiles
-- `actor_keys` - Cryptographic keys for federation signing
-- `actor_keys_public` - Public view of actor keys
-- `verification_requests` - User verification request tracking
-
----
-
-## Issues Identified
-
-### 1. Orphaned Federation Code
-The previous Fediverse/ActivityPub functionality has been partially removed from the frontend, but significant backend infrastructure remains:
-
-**Edge Functions Still Present:**
-- `activitypub-actor/` - Serves ActivityPub actor profiles
-- `activitypub-collections/` - Serves followers/following collections
-- `activitypub-inbox/` - Receives ActivityPub activities
-- `activitypub-outbox/` - Serves user activity outbox
-- `follow-remote/` - Follows remote accounts
-- `lookup-remote-actor/` - Resolves remote user handles
-- `webfinger/` - WebFinger discovery protocol
-- `fetch-trending/` - Fetches trending posts from Mastodon instances (still references "Fediverse")
-
-**Database Tables:**
-- `federation_activities`, `federation_follows`, `remote_actors`, `actor_keys` tables remain in schema
-
-### 2. User Profile Page Issue
-The `UserProfilePage.tsx` uses `fetchProfile(cleanUsername)` which queries by username. This is correct, but the page doesn't handle the case where:
-- The profile might be a remote actor (from federation tables)
-- The profile might not exist for the given username
-
-The current implementation correctly fetches by username and displays "User not found" appropriately.
-
-### 3. Unused Profile Fields
-The `profiles` table has federation-related columns that are no longer needed:
-- `actor_id` - ActivityPub actor URI
-- `inbox_url` - ActivityPub inbox endpoint
-- `public_key` - Federation signing key
-- `instance` - Origin instance (defaults to 'koasocial.app')
-
----
-
-## Recommended Updates
-
-### Phase 1: Clean Up Frontend (Code Changes)
-
-1. **Update `fetch-trending` edge function** to remove Fediverse references in comments
-2. **Verify all components** work correctly with current schema:
-   - Home page feed
-   - User profiles
-   - Post interactions (like, boost, reply)
-   - Notifications
-   - Messaging
-   - Search
-
-### Phase 2: Database Cleanup (Migration)
-
-Remove unused federation infrastructure:
-
-```text
-Tables to remove:
-- federation_activities
-- federation_follows  
-- remote_actors
-- actor_keys
-- actor_keys_public (view)
-
-Profile columns to remove:
-- actor_id
-- inbox_url
-- public_key
-
-(Keep 'instance' column as it's used for display purposes)
+The current route definition is:
+```jsx
+<Route path="/@:username" element={<UserProfilePage />} />
 ```
 
-### Phase 3: Edge Function Cleanup
+In React Router v6.5+, **dynamic parameters (`:param`) must be the full URL segment**. The path `/@:username` is invalid because:
+- `@` is a static prefix
+- `:username` is a dynamic parameter
+- These are combined into a single segment, which is not allowed
 
-Delete unused edge functions:
-- `activitypub-actor/`
-- `activitypub-collections/`
-- `activitypub-inbox/`
-- `activitypub-outbox/`
-- `follow-remote/`
-- `lookup-remote-actor/`
-- `webfinger/`
+This causes the route to never match, and the catch-all `*` route renders the 404 page instead.
 
-Keep functional edge functions:
-- `fetch-news/` - Powers the Trending News feature
-- `fetch-trending/` - Could be repurposed or removed (currently fetches from Mastodon)
+**Evidence**:
+- GitHub Issue #8699: "Can't start route with @ within Layout Routes"
+- Stack Overflow: "dynamic parameters (`:param`) are required to be full url segments"
+- React Router v6.5 release notes explicitly removed support for "partial params" like `/@:param`
 
 ---
 
-## Detailed Implementation Steps
+## Solution Options
 
-### Step 1: Database Migration
-Create a migration to drop unused tables and columns:
+### Option A: Use Full Segment Dynamic Route (Recommended)
+Change the route to `/:username` and handle the `@` prefix in the component and links.
 
-```sql
--- Drop federation-related tables
-DROP TABLE IF EXISTS public.federation_follows CASCADE;
-DROP TABLE IF EXISTS public.federation_activities CASCADE;
-DROP TABLE IF EXISTS public.remote_actors CASCADE;
-DROP VIEW IF EXISTS public.actor_keys_public;
-DROP TABLE IF EXISTS public.actor_keys CASCADE;
+**Pros:**
+- Works with React Router v6.5+ constraints
+- Keeps the Twitter-like `@username` display in URLs
+- Minimal changes to existing link structure
 
--- Remove unused columns from profiles
-ALTER TABLE public.profiles 
-  DROP COLUMN IF EXISTS actor_id,
-  DROP COLUMN IF EXISTS inbox_url,
-  DROP COLUMN IF EXISTS public_key;
+**Cons:**
+- Need to ensure route doesn't conflict with other top-level routes like `/home`, `/search`, etc.
 
--- Drop federation-related functions if any exist
-DROP FUNCTION IF EXISTS public.sync_actor_to_profile() CASCADE;
+### Option B: Use Different Path Structure
+Change to `/u/:username` or `/profile/:username`.
+
+**Pros:**
+- Clear, unambiguous routing
+- No special character handling
+
+**Cons:**
+- Changes the URL pattern, which may affect user expectations
+- Need to update all links across the app
+
+---
+
+## Recommended Implementation (Option A)
+
+### Step 1: Update Route Definition
+Change from:
+```jsx
+<Route path="/@:username" element={<UserProfilePage />} />
 ```
 
-### Step 2: Delete Edge Functions
-Remove the following directories:
-- `supabase/functions/activitypub-actor/`
-- `supabase/functions/activitypub-collections/`
-- `supabase/functions/activitypub-inbox/`
-- `supabase/functions/activitypub-outbox/`
-- `supabase/functions/follow-remote/`
-- `supabase/functions/lookup-remote-actor/`
-- `supabase/functions/webfinger/`
+To:
+```jsx
+<Route path="/:username" element={<UserProfilePage />} />
+```
 
-Also clean up the shared validation file that was primarily used for federation:
-- Update or remove `supabase/functions/_shared/validation.ts`
+### Step 2: Add Route Order Safeguard
+Move the `/:username` route to the END of the child routes to ensure specific routes match first. React Router v6 uses a scoring system, but explicit ordering helps with clarity:
 
-### Step 3: Update/Remove fetch-trending
-Either:
-- **Option A**: Delete `fetch-trending` if Mastodon integration is unwanted
-- **Option B**: Update it to fetch from different sources if a trending feature is still desired
+```jsx
+<Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+  <Route path="/home" element={<HomePage />} />
+  <Route path="/public" element={<PublicPage />} />
+  <Route path="/search" element={<SearchPage />} />
+  <Route path="/messages" element={<MessagesPage />} />
+  <Route path="/notifications" element={<NotificationsPage />} />
+  <Route path="/profile" element={<ProfilePage />} />
+  <Route path="/profile/edit" element={<ProfileEditPage />} />
+  <Route path="/settings" element={<SettingsPage />} />
+  {/* Dynamic username route LAST - matches any path like /@username or /username */}
+  <Route path="/:username" element={<UserProfilePage />} />
+</Route>
+```
 
-### Step 4: Verify Core Functionality
-Test that these features still work:
-1. User registration and login
-2. Creating and viewing posts
-3. Liking and boosting posts
-4. Following users
-5. Viewing user profiles
-6. Direct messaging
-7. Notifications
-8. Trending news
+### Step 3: Update UserProfilePage Component
+Modify the component to handle both `@username` and `username` formats:
+
+```typescript
+export default function UserProfilePage() {
+  const { username } = useParams<{ username: string }>();
+  
+  // Strip leading @ if present (e.g., "@jordan" -> "jordan")
+  const cleanUsername = username?.replace(/^@/, "") || "";
+  
+  // Remove the unused isUuid check since federation was removed
+  // ... rest of component stays the same
+}
+```
+
+### Step 4: Keep Existing Links (No Change Required)
+The existing links use `/@${username}` format (e.g., `/@jordan`). When clicked:
+1. Browser navigates to `/@jordan`
+2. Route `/:username` matches with `username = "@jordan"`
+3. Component strips the `@` to get `"jordan"`
+4. Profile is fetched using `"jordan"`
+
+**Files with links that remain unchanged:**
+- `src/components/PostCard.tsx` - `to={/@${author.username}}`
+- `src/pages/SearchPage.tsx` - `to={/@${user.username}}`
 
 ---
 
-## Impact Assessment
+## Files to Modify
 
-### Breaking Changes
-- Removes all federation/ActivityPub capability
-- Existing `remote_actors` references in profiles will be lost
-- Any federated follows will be removed
-
-### No Impact On
-- Local user accounts
-- Local posts and interactions
-- Direct messaging
-- Notifications
-- Authentication
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Change route path from `/@:username` to `/:username` and reorder to be last |
+| `src/pages/UserProfilePage.tsx` | Clean up unused `isUuid` variable, ensure `@` is stripped from param |
 
 ---
 
-## Technical Notes
+## Technical Details
 
-### TypeScript Types
-The `src/integrations/supabase/types.ts` file is auto-generated and will automatically update after the migration runs. No manual changes needed.
+### Route Matching Verification
+With `/:username` route, React Router will match:
+- `/jordan` - matches, username = "jordan"
+- `/@jordan` - matches, username = "@jordan"
+- `/home` - does NOT match (specific routes have higher priority)
+- `/profile/edit` - does NOT match (more specific path wins)
 
-### RLS Policies
-The migration will automatically drop policies on removed tables. Existing policies on remaining tables are unaffected.
+React Router v6 uses a ranking algorithm that gives higher scores to:
+1. More static segments (`/profile/edit` beats `/:username`)
+2. Longer paths
+3. Non-index routes over index routes
 
-### Database Functions
-The `sync_actor_to_profile` trigger function should be dropped as it was used for federation.
+### Edge Case: Usernames That Match Routes
+If a user has a username like "home" or "settings", navigating to `/home` would match the `/home` route, not the `/:username` route. This is actually correct behavior - we want the app routes to take precedence.
 
-### Secrets
-The `INSTANCE_DOMAIN` secret can remain (harmless) or be removed if desired.
+If a user's username conflicts with an app route:
+- They can still be accessed via `/@home` (becomes username = "@home", stripped to "home")
+- The search page links use `/@${username}` which avoids conflicts
 
 ---
 
 ## Summary
 
-| Action | Items | Risk |
-|--------|-------|------|
-| Delete edge functions | 7 functions | Low - unused |
-| Drop database tables | 5 tables | Low - federation not in use |
-| Remove profile columns | 3 columns | Low - not displayed in UI |
-| Keep edge functions | 2 (fetch-news, fetch-trending) | None |
-| Code verification | Messaging, profiles, posts | Testing required |
+The fix is straightforward:
+1. Change route from `/@:username` to `/:username`
+2. Ensure the route is ordered last among siblings (React Router handles this automatically, but ordering is clearer)
+3. Strip leading `@` in the component when parsing the username
+
+This aligns with React Router v6.5+ requirements where dynamic segments must be complete path segments.
