@@ -40,15 +40,15 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string; // Changed from user_id
+  recipient_id: string; // Changed from user_id to match SQL
+  type: string; // Broaden from fixed enum to allow 'like' and 'message'
   actor_id: string;
-  type: string; // Broaden this to allow 'like' and 'message'
-  entity_id: string; // Fixes the TS2339 error
-  is_read: boolean; // Matches SQL
-  read: boolean; // Keep this for your UI components
+  entity_id: string | null; // Changed from post_id to match SQL
+  is_read: boolean; // Changed from read to match SQL
+  read: boolean; // Keep this as a virtual field for UI components
   created_at: string;
-  actor?: any;
-  post?: any;
+  actor?: Profile;
+  post?: Post;
 }
 
 // Fetch posts with author info and counts
@@ -154,12 +154,17 @@ export async function toggleFavorite(profileId: string, postId: string, isFavori
 
 // Toggle boost
 export async function toggleBoost(profileId: string, postId: string, isBoosted: boolean) {
-  if (isBoosted) {
-    const { error } = await supabase.from("boosts").delete().eq("user_id", profileId).eq("post_id", postId);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from("boosts").insert({ user_id: profileId, post_id: postId });
-    if (error) throw error;
+  try {
+    if (isBoosted) {
+      const { error } = await supabase.from("boosts").delete().eq("user_id", profileId).eq("post_id", postId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("boosts").insert({ user_id: profileId, post_id: postId });
+      if (error) throw error;
+    }
+  } catch (err) {
+    console.error("Boost toggle failed:", err);
+    throw err;
   }
 }
 
@@ -206,23 +211,25 @@ export async function toggleFollow(followerId: string, followingId: string, isFo
 export async function fetchNotifications(profileId: string): Promise<Notification[]> {
   const { data, error } = await supabase
     .from("notifications")
-    .select(`
+    .select(
+      `
       *,
       actor:profiles!notifications_actor_id_fkey(*),
       post:posts(*)
-    `)
-    .eq("recipient_id", profileId) // <--- CHANGE THIS from "user_id"
+    `,
+    )
+    .eq("recipient_id", profileId) // Use recipient_id
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching notifications:", error);
     return [];
   }
-  
-  // Map the DB fields to the UI-friendly 'read' property
-  return (data || []).map(n => ({
+
+  // Map is_read to read for the UI
+  return (data || []).map((n) => ({
     ...n,
-    read: n.is_read
+    read: n.is_read,
   })) as Notification[];
 }
 
@@ -230,9 +237,9 @@ export async function fetchNotifications(profileId: string): Promise<Notificatio
 export async function markNotificationsRead(profileId: string) {
   const { error } = await supabase
     .from("notifications")
-    .update({ is_read: true }) // <--- CHANGE from "read"
-    .eq("recipient_id", profileId) // <--- CHANGE from "user_id"
-    .eq("is_read", false); // <--- CHANGE from "read"
+    .update({ is_read: true }) // Use is_read
+    .eq("recipient_id", profileId) // Use recipient_id
+    .eq("is_read", false); // Use is_read
 
   if (error) throw error;
 }
