@@ -1,48 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NotificationItem } from '@/components/NotificationItem';
-import { useAuth } from '@/contexts/AuthContext';
-import { fetchNotifications, markNotificationsRead, type Notification } from '@/lib/api';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NotificationsPage() {
-  const { profile } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
 
-  const loadNotifications = async () => {
-    if (!profile) return;
-    
-    setLoading(true);
-    try {
-      const data = await fetchNotifications(profile.id);
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Mark notifications as read when viewed
   useEffect(() => {
-    loadNotifications();
-  }, [profile]);
+    if (notifications.length > 0 && unreadCount > 0) {
+      // Mark all as read after a short delay (user has seen them)
+      const timer = setTimeout(() => {
+        notifications.forEach(notification => {
+          if (!notification.read) {
+            markAsRead(notification.id);
+          }
+        });
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [notifications, unreadCount, markAsRead]);
 
   const handleMarkAllRead = async () => {
-    if (!profile) return;
-
     try {
-      await markNotificationsRead(profile.id);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      await markAllAsRead();
       toast({ title: 'Done!', description: 'All notifications marked as read.' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="animate-fade-in">
