@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Logo } from '@/components/Logo';
 
 interface AppSidebarProps {
@@ -26,21 +26,9 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
   const [isDark, setIsDark] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    if (profile) {
-      // Fetch unread notification count
-      supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
-        .eq('read', false)
-        .then(({ count }) => setUnreadCount(count || 0));
-    }
-  }, [profile]);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -155,3 +143,4 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
     </>
   );
 }
+
