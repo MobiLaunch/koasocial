@@ -24,10 +24,11 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      const formattedData = (data || []).map(n => ({
-        ...n,
-        read: n.is_read
-      })) as Notification[];
+     const formattedData = (data as any[] || []).map(n => ({
+  ...n,
+  // Ensure we map whatever the DB returns to the 'read' property the UI wants
+  read: n.is_read !== undefined ? n.is_read : n.read
+})) as Notification[];
 
       setNotifications(formattedData);
       setUnreadCount(formattedData.filter(n => !n.read).length);
