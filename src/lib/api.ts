@@ -40,14 +40,15 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string;
-  actor_id: string;
-  type: "like" | "follow" | "message" | "boost" | string;
-  entity_id: string; // The "magic" ID that can be a post ID OR a conversation ID
-  is_read: boolean;
+  recipient_id: string; // From DB
+  actor_id: string; // From DB
+  type: string; // From DB
+  entity_id: string; // From DB (This fixes the missing entity_id error)
+  is_read: boolean; // From DB
+  read: boolean; // Virtual field for UI (Fixes TS2339)
   created_at: string;
-  actor?: any; // Change to 'any' temporarily to bypass the strict join requirement
-  post?: any; // Change to 'any' temporarily to bypass the strict join requirement
+  actor?: any;
+  post?: any;
 }
 
 // Fetch posts with author info and counts
