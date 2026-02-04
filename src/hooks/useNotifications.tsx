@@ -3,69 +3,81 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Notification } from '@/lib/api';
 
-export function useNotifications() {
-  const { profile } = useAuth();
+export const useNotifications = () => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch initial notifications
-  useEffect(() => {
-    if (!profile) {
-      setNotifications([]);
-      setUnreadCount(0);
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          actor:profiles!notifications_actor_id_fkey(*),
+          post:posts(*)
+        `)
+        .eq('recipient_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData = (data || []).map(n => ({
+        ...n,
+        read: n.is_read
+      })) as Notification[];
+
+      setNotifications(formattedData);
+      setUnreadCount(formattedData.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    const fetchNotifications = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select(`
-        *,
-        actor:profiles!notifications_actor_id_fkey(*),
-        post:posts(*)
-      `)
-      .eq('recipient_id', profile.id) // CHANGE: user_id -> recipient_id
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) throw error;
-
-    // Map data to include the virtual 'read' property for the UI
-    const formattedData = (data || []).map(n => ({
-      ...n,
-      read: n.is_read // Map DB column to UI property
-    }));
-
-    setNotifications(formattedData);
-    setUnreadCount(formattedData.filter(n => !n.read).length);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-    fetchNotifications();
-  }, [profile]);
-
-  // Set up real-time subscription
   useEffect(() => {
-    if (!profile) return;
-
-    console.log('Setting up real-time notifications for user:', profile.id);
+    if (!user) return;
+    fetchNotifications();
 
     const channel = supabase
-  .channel('notifications')
-  .on('postgres_changes', {
-    event: 'INSERT', 
-    schema: 'public', 
-    table: 'notifications', 
-    filter: `recipient_id=eq.${profile.id}`, // CHANGE: user_id -> recipient_id
-  }, async (payload) => {
-    // ... your fetch logic for the new notification ...
+      .channel('notifications_realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`
+      }, () => {
+        fetchNotifications();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('recipient_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  return { notifications, unreadCount, loading, markAllAsRead, refresh: fetchNotifications };
+};    // ... your fetch logic for the new notification ...
   })
   .on('postgres_changes', {
     event: 'UPDATE', 
