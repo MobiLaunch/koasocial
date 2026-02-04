@@ -40,12 +40,12 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string; // Changed from user_id to match SQL
-  type: string; // Broaden from fixed enum to allow 'like' and 'message'
+  recipient_id: string; 
   actor_id: string;
-  entity_id: string | null; // Changed from post_id to match SQL
-  is_read: boolean; // Changed from read to match SQL
-  read: boolean; // Keep this as a virtual field for UI components
+  type: string;
+  entity_id: string | null;
+  is_read: boolean;
+  read: boolean; // Virtual field for UI
   created_at: string;
   actor?: Profile;
   post?: Post;
