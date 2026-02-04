@@ -40,12 +40,12 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string; 
+  recipient_id: string;
   actor_id: string;
   type: string;
-  entity_id: string | null;
+  entity_id: string;
   is_read: boolean;
-  read: boolean; // Virtual field for UI
+  read: boolean; // Virtual field for UI logic
   created_at: string;
   actor?: Profile;
   post?: Post;
