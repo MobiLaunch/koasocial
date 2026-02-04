@@ -40,12 +40,12 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string; 
+  recipient_id: string;
   actor_id: string;
   type: string;
   entity_id: string | null;
-  is_read: boolean;     // The real DB column
-  read: boolean;        // The UI helper
+  is_read: boolean; // The real DB column
+  read: boolean; // The UI helper
   created_at: string;
   actor?: Profile;
   post?: Post;
@@ -105,8 +105,8 @@ export async function fetchPosts(options?: { authorId?: string; visibility?: str
 // Check if user has favorited/boosted posts
 export async function getUserInteractions(profileId: string, postIds: string[]) {
   const [favoritesRes, boostsRes] = await Promise.all([
-    supabase.from("favorites").select("post_id").eq("user_id", profileId).in("post_id", postIds),
-    supabase.from("boosts").select("post_id").eq("user_id", profileId).in("post_id", postIds),
+    supabase.from("favorites").select("post_id").eq("profile_id", profileId).in("post_id", postIds),
+    supabase.from("boosts").select("post_id").eq("profile_id", profileId).in("post_id", postIds),
   ]);
 
   return {
