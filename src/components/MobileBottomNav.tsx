@@ -2,8 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, MessageCircle, Bell, User, Feather } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface MobileBottomNavProps {
   onCompose: () => void;
@@ -20,18 +19,7 @@ const navItems = [
 export function MobileBottomNav({ onCompose }: MobileBottomNavProps) {
   const location = useLocation();
   const { profile } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    if (profile) {
-      supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
-        .eq('read', false)
-        .then(({ count }) => setUnreadCount(count || 0));
-    }
-  }, [profile]);
+  const { unreadCount } = useNotifications();
 
   return (
     <>
@@ -84,3 +72,4 @@ export function MobileBottomNav({ onCompose }: MobileBottomNavProps) {
     </>
   );
 }
+
