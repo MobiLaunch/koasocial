@@ -14,38 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      actor_keys: {
-        Row: {
-          created_at: string
-          id: string
-          private_key: string
-          profile_id: string
-          public_key: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          private_key: string
-          profile_id: string
-          public_key: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          private_key?: string
-          profile_id?: string
-          public_key?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actor_keys_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       boosts: {
         Row: {
           created_at: string
@@ -171,116 +139,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      federation_activities: {
-        Row: {
-          activity_id: string
-          activity_type: string
-          actor_uri: string
-          created_at: string
-          direction: string
-          error_message: string | null
-          id: string
-          object_uri: string | null
-          processed_at: string | null
-          raw_activity: Json
-          status: string
-          target_uri: string | null
-        }
-        Insert: {
-          activity_id: string
-          activity_type: string
-          actor_uri: string
-          created_at?: string
-          direction: string
-          error_message?: string | null
-          id?: string
-          object_uri?: string | null
-          processed_at?: string | null
-          raw_activity: Json
-          status?: string
-          target_uri?: string | null
-        }
-        Update: {
-          activity_id?: string
-          activity_type?: string
-          actor_uri?: string
-          created_at?: string
-          direction?: string
-          error_message?: string | null
-          id?: string
-          object_uri?: string | null
-          processed_at?: string | null
-          raw_activity?: Json
-          status?: string
-          target_uri?: string | null
-        }
-        Relationships: []
-      }
-      federation_follows: {
-        Row: {
-          created_at: string
-          direction: string
-          id: string
-          local_followed_id: string | null
-          local_profile_id: string | null
-          remote_actor_id: string | null
-          remote_follower_id: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          direction: string
-          id?: string
-          local_followed_id?: string | null
-          local_profile_id?: string | null
-          remote_actor_id?: string | null
-          remote_follower_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          direction?: string
-          id?: string
-          local_followed_id?: string | null
-          local_profile_id?: string | null
-          remote_actor_id?: string | null
-          remote_follower_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "federation_follows_local_followed_id_fkey"
-            columns: ["local_followed_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "federation_follows_local_profile_id_fkey"
-            columns: ["local_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "federation_follows_remote_actor_id_fkey"
-            columns: ["remote_actor_id"]
-            isOneToOne: false
-            referencedRelation: "remote_actors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "federation_follows_remote_follower_id_fkey"
-            columns: ["remote_follower_id"]
-            isOneToOne: false
-            referencedRelation: "remote_actors"
             referencedColumns: ["id"]
           },
         ]
@@ -465,18 +323,15 @@ export type Database = {
       }
       profiles: {
         Row: {
-          actor_id: string | null
           avatar_url: string | null
           banner_url: string | null
           bio: string | null
           created_at: string
           display_name: string
           id: string
-          inbox_url: string | null
           instance: string | null
           interests: string[] | null
           is_verified: boolean | null
-          public_key: string | null
           social_links: Json | null
           updated_at: string
           user_id: string | null
@@ -484,18 +339,15 @@ export type Database = {
           verification_tier: string | null
         }
         Insert: {
-          actor_id?: string | null
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name: string
           id?: string
-          inbox_url?: string | null
           instance?: string | null
           interests?: string[] | null
           is_verified?: boolean | null
-          public_key?: string | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string | null
@@ -503,83 +355,20 @@ export type Database = {
           verification_tier?: string | null
         }
         Update: {
-          actor_id?: string | null
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string
           id?: string
-          inbox_url?: string | null
           instance?: string | null
           interests?: string[] | null
           is_verified?: boolean | null
-          public_key?: string | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string | null
           username?: string
           verification_tier?: string | null
-        }
-        Relationships: []
-      }
-      remote_actors: {
-        Row: {
-          actor_uri: string
-          avatar_url: string | null
-          created_at: string
-          display_name: string | null
-          followers_url: string | null
-          following_url: string | null
-          id: string
-          inbox_url: string
-          instance: string
-          outbox_url: string | null
-          public_key: string | null
-          public_key_id: string | null
-          raw_actor: Json | null
-          shared_inbox_url: string | null
-          summary: string | null
-          updated_at: string
-          username: string
-        }
-        Insert: {
-          actor_uri: string
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          followers_url?: string | null
-          following_url?: string | null
-          id?: string
-          inbox_url: string
-          instance: string
-          outbox_url?: string | null
-          public_key?: string | null
-          public_key_id?: string | null
-          raw_actor?: Json | null
-          shared_inbox_url?: string | null
-          summary?: string | null
-          updated_at?: string
-          username: string
-        }
-        Update: {
-          actor_uri?: string
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          followers_url?: string | null
-          following_url?: string | null
-          id?: string
-          inbox_url?: string
-          instance?: string
-          outbox_url?: string | null
-          public_key?: string | null
-          public_key_id?: string | null
-          raw_actor?: Json | null
-          shared_inbox_url?: string | null
-          summary?: string | null
-          updated_at?: string
-          username?: string
         }
         Relationships: []
       }
@@ -626,35 +415,7 @@ export type Database = {
       }
     }
     Views: {
-      actor_keys_public: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          profile_id: string | null
-          public_key: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          profile_id?: string | null
-          public_key?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          profile_id?: string | null
-          public_key?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actor_keys_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       get_my_profile_id: { Args: never; Returns: string }
