@@ -206,31 +206,33 @@ export async function toggleFollow(followerId: string, followingId: string, isFo
 export async function fetchNotifications(profileId: string): Promise<Notification[]> {
   const { data, error } = await supabase
     .from("notifications")
-    .select(
-      `
+    .select(`
       *,
       actor:profiles!notifications_actor_id_fkey(*),
       post:posts(*)
-    `,
-    )
-    .eq("user_id", profileId)
+    `)
+    .eq("recipient_id", profileId) // <--- CHANGE THIS from "user_id"
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching notifications:", error);
     return [];
   }
-
-  return data as Notification[];
+  
+  // Map the DB fields to the UI-friendly 'read' property
+  return (data || []).map(n => ({
+    ...n,
+    read: n.is_read
+  })) as Notification[];
 }
 
 // Mark notifications as read
 export async function markNotificationsRead(profileId: string) {
   const { error } = await supabase
     .from("notifications")
-    .update({ read: true })
-    .eq("user_id", profileId)
-    .eq("read", false);
+    .update({ is_read: true }) // <--- CHANGE from "read"
+    .eq("recipient_id", profileId) // <--- CHANGE from "user_id"
+    .eq("is_read", false); // <--- CHANGE from "read"
 
   if (error) throw error;
 }
