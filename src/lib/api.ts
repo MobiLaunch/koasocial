@@ -105,8 +105,8 @@ export async function fetchPosts(options?: { authorId?: string; visibility?: str
 // Check if user has favorited/boosted posts
 export async function getUserInteractions(profileId: string, postIds: string[]) {
   const [favoritesRes, boostsRes] = await Promise.all([
-    supabase.from("favorites").select("post_id").eq("profile_id", profileId).in("post_id", postIds),
-    supabase.from("boosts").select("post_id").eq("profile_id", profileId).in("post_id", postIds),
+    supabase.from("favorites").select("post_id").eq("user_id", profileId).in("post_id", postIds),
+    supabase.from("boosts").select("post_id").eq("user_id", profileId).in("post_id", postIds),
   ]);
 
   return {
