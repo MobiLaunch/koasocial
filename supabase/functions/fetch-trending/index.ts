@@ -6,7 +6,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-// Popular Fediverse instances to fetch trending posts from
+// Popular Mastodon instances to fetch trending posts from
 const INSTANCES = [
   'mastodon.social',
   'hachyderm.io',
