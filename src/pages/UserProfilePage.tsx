@@ -23,10 +23,8 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const identifier = username?.replace("@", "") || "";
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
-
-  const cleanUsername = username?.replace("@", "") || "";
+  // Strip leading @ if present (e.g., "@jordan" -> "jordan")
+  const cleanUsername = username?.replace(/^@/, "") || "";
 
   const loadProfile = async () => {
     if (!cleanUsername) return;
