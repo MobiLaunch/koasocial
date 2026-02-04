@@ -40,12 +40,12 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  recipient_id: string; // From DB
-  actor_id: string; // From DB
-  type: string; // From DB
-  entity_id: string; // From DB (This fixes the missing entity_id error)
-  is_read: boolean; // From DB
-  read: boolean; // Virtual field for UI (Fixes TS2339)
+  recipient_id: string; // Changed from user_id
+  actor_id: string;
+  type: string; // Broaden this to allow 'like' and 'message'
+  entity_id: string; // Fixes the TS2339 error
+  is_read: boolean; // Matches SQL
+  read: boolean; // Keep this for your UI components
   created_at: string;
   actor?: any;
   post?: any;
