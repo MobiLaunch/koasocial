@@ -32,14 +32,14 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="px-4 font-serif font-bold pb-0 pt-0">
         <div className="container max-w-4xl mx-auto text-center border-solid rounded-md opacity-100 border-0 shadow-none">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8">
             <span className="animate-pulse">🌿</span>
             A cozy corner of the internet
           </div>
 
-          <h1 className="font-display text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
+          <h1 className="text-5xl font-bold text-foreground mb-6 leading-tight text-center font-serif md:text-xl">
             Social networking,{' '}
             <span className="bg-gradient-to-r from-primary to-koa-peach bg-clip-text text-transparent">
               reimagined
