@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotifications, markAllNotificationsAsRead, markNotificationAsRead, Notification } from "@/lib/api";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
