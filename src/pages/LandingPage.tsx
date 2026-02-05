@@ -3,33 +3,25 @@ import { MessageCircle, Users, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
-
-const features = [
-  {
-    icon: MessageCircle,
-    title: 'Share your thoughts',
-    description: 'Post updates, share ideas, and connect with friends in a friendly environment.',
-  },
-  {
-    icon: Users,
-    title: 'Build your community',
-    description: 'Follow interesting people and grow your network organically.',
-  },
-  {
-    icon: Shield,
-    title: 'Your data, your rules',
-    description: 'Privacy-focused with transparent practices and user control.',
-  },
-  {
-    icon: Globe,
-    title: 'Global reach',
-    description: 'Stay connected with trending news and a growing community.',
-  },
-];
-
+const features = [{
+  icon: MessageCircle,
+  title: 'Share your thoughts',
+  description: 'Post updates, share ideas, and connect with friends in a friendly environment.'
+}, {
+  icon: Users,
+  title: 'Build your community',
+  description: 'Follow interesting people and grow your network organically.'
+}, {
+  icon: Shield,
+  title: 'Your data, your rules',
+  description: 'Privacy-focused with transparent practices and user control.'
+}, {
+  icon: Globe,
+  title: 'Global reach',
+  description: 'Stay connected with trending news and a growing community.'
+}];
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -48,7 +40,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="pt-32 pb-20 px-4">
-        <div className="container max-w-4xl mx-auto text-center">
+        <div className="container max-w-4xl mx-auto text-center border-solid border rounded-md shadow-md opacity-100">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8">
             <span className="animate-pulse">🌿</span>
             A cozy corner of the internet
@@ -88,8 +80,7 @@ export default function LandingPage() {
           </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature) => (
-              <Card key={feature.title} className="rounded-2xl border-0 koa-shadow hover:koa-shadow-lg transition-shadow">
+            {features.map(feature => <Card key={feature.title} className="rounded-2xl border-0 koa-shadow hover:koa-shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <div className="h-12 w-12 rounded-xl koa-gradient flex items-center justify-center mb-4">
                     <feature.icon className="h-6 w-6 text-primary-foreground" />
@@ -101,8 +92,7 @@ export default function LandingPage() {
                     {feature.description}
                   </p>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -117,11 +107,7 @@ export default function LandingPage() {
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto">
               Start sharing, connecting, and being part of something special.
             </p>
-            <Button
-              size="lg"
-              className="rounded-full px-8 h-14 text-lg bg-background text-foreground hover:bg-background/90"
-              asChild
-            >
+            <Button size="lg" className="rounded-full px-8 h-14 text-lg bg-background text-foreground hover:bg-background/90" asChild>
               <Link to="/auth">
                 Create your account
                 <span className="ml-2">🐨</span>
@@ -148,6 +134,5 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }
