@@ -27,20 +27,13 @@ export default function LandingPage() {
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Logo size="md" linkTo="/" />
 
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link to="/auth">Sign in</Link>
-            </Button>
-            <Button className="rounded-full koa-gradient text-primary-foreground hover:opacity-90" asChild>
-              <Link to="/auth">Get started</Link>
-            </Button>
-          </div>
+          
         </div>
       </header>
 
       {/* Hero */}
       <section className="pt-32 pb-20 px-4">
-        <div className="container max-w-4xl mx-auto text-center border-solid border rounded-md shadow-md bg-[#ece9e9] border-secondary opacity-50">
+        <div className="container max-w-4xl mx-auto text-center border-solid rounded-md opacity-100 border-0 shadow-none">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8">
             <span className="animate-pulse">🌿</span>
             A cozy corner of the internet
