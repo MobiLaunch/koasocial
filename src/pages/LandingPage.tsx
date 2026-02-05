@@ -40,9 +40,9 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="pt-32 pb-20 px-4">
-        <div className="container max-w-4xl mx-auto text-center border-solid border rounded-md shadow-md opacity-100 pt-0 pb-0">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8 my-[20px]">
-            <span className="animate-pulse">🌱</span>
+        <div className="container max-w-4xl mx-auto text-center border-solid border rounded-md shadow-md bg-[#ece9e9] border-secondary opacity-50">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8">
+            <span className="animate-pulse">🌿</span>
             A cozy corner of the internet
           </div>
 
@@ -58,7 +58,7 @@ export default function LandingPage() {
             connect with like-minded people, and stay informed with trending news.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-[20px]">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="rounded-full px-8 h-14 text-lg koa-gradient text-primary-foreground hover:opacity-90 koa-shadow-lg" asChild>
               <Link to="/auth">
                 Join koasocial
@@ -73,7 +73,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 bg-muted/30 my-0">
+      <section className="py-20 px-4 bg-muted/30">
         <div className="container max-w-6xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-center text-foreground mb-12">
             Why you'll love it here
@@ -110,7 +110,7 @@ export default function LandingPage() {
             <Button size="lg" className="rounded-full px-8 h-14 text-lg bg-background text-foreground hover:bg-background/90" asChild>
               <Link to="/auth">
                 Create your account
-                <span className="ml-2">🌱</span>
+                <span className="ml-2">🐨</span>
               </Link>
             </Button>
           </Card>
