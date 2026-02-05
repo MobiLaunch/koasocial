@@ -57,14 +57,14 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
   if (!actor) return null;
 
-  const itemLink = config.getLink(actor.username, notification.entity_id);
+  const itemLink = config.getLink(actor.username, notification.entity_id || "");
 
   return (
     <Link to={itemLink}>
       <Card
         className={cn(
           "p-4 border-0 border-b rounded-none last:border-b-0 transition-colors hover:bg-accent/30",
-          !notification.read && "bg-accent/50",
+          !notification.is_read && "bg-accent/50",
         )}
       >
         <div className="flex gap-3">
