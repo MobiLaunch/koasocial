@@ -91,8 +91,8 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/profile/edit" element={<ProfileEditPage />} />
       <Route path="/settings" element={<SettingsPage />} />
-      {/* Dynamic username route LAST - matches /@username or /username */}
-      <Route path="/:username" element={<UserProfilePage />} />
+      {/* Dynamic username route LAST - matches /u/username */}
+      <Route path="/u/:username" element={<UserProfilePage />} />
     </Route>
 
     {/* Catch-all */}

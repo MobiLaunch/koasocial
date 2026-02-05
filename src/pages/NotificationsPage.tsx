@@ -53,7 +53,7 @@ export default function NotificationsPage() {
                 if (notification.post) {
                   navigate(`/post/${notification.post.id}`);
                 } else {
-                  navigate(`/@${notification.actor.username}`);
+                  navigate(`/u/${notification.actor.username}`);
                 }
               }}
             >
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
                     </Avatar>
                     <span className="font-bold text-sm hover:underline" onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/@${notification.actor.username}`);
+                      navigate(`/u/${notification.actor.username}`);
                     }}>
                       {notification.actor.display_name}
                     </span>

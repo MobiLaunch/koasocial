@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function UserProfilePage() {
-  const { username } = useParams<{ username: string }>(); // This 'username' param will now sometimes be a UUID
+  const { username } = useParams<{ username: string }>();
   const { profile: currentProfile } = useAuth();
   const { toast } = useToast();
 
@@ -23,8 +23,9 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  // Strip leading @ if present (e.g., "@jordan" -> "jordan")
-  const cleanUsername = username?.replace(/^@/, "") || "";
+  
+  // Username comes directly from /u/:username route (no @ to strip)
+  const cleanUsername = username || "";
 
   const loadProfile = async () => {
     if (!cleanUsername) return;

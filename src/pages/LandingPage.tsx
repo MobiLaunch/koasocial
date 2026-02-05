@@ -144,7 +144,7 @@ export default function LandingPage() {
           </div>
 
           <div className="text-sm text-muted-foreground">
-            © 2024 koasocial
+            © 2026 koasocial
           </div>
         </div>
       </footer>

@@ -17,7 +17,7 @@ const notificationConfig = {
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
     getText: () => "followed you",
-    getLink: (username: string) => `/profile/${username}`,
+    getLink: (username: string) => `/u/${username}`,
   },
   like: {
     icon: Heart,

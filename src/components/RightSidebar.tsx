@@ -24,7 +24,7 @@ export function RightSidebar() {
           <div className="space-y-4">
             {suggestedUsers.slice(0, 3).map((user) => (
               <div key={user.id} className="flex items-center gap-3">
-                <Link to={`/@${user.username}`}>
+                <Link to={`/u/${user.username}`}>
                   <Avatar className="h-10 w-10 ring-2 ring-background">
                     <AvatarImage src={user.avatar} alt={user.displayName} />
                     <AvatarFallback className="bg-primary/10 text-primary">
@@ -34,7 +34,7 @@ export function RightSidebar() {
                 </Link>
                 <div className="flex-1 min-w-0">
                   <Link
-                    to={`/@${user.username}`}
+                    to={`/u/${user.username}`}
                     className="font-semibold text-foreground hover:underline truncate block"
                   >
                     {user.displayName}
@@ -60,7 +60,7 @@ export function RightSidebar() {
           <Link to="/privacy" className="hover:underline">Privacy</Link>
           <Link to="/docs" className="hover:underline">Docs</Link>
         </div>
-        <div>© 2024 koasocial</div>
+        <div>© 2026 koasocial</div>
       </div>
     </aside>
   );

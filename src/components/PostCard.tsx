@@ -134,7 +134,7 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
 
       <div className="flex gap-3">
         {/* Avatar */}
-        <Link to={`/@${author.username}`} className="flex-shrink-0">
+        <Link to={`/u/${author.username}`} className="flex-shrink-0">
           <Avatar className="h-12 w-12 ring-2 ring-background cursor-pointer hover:opacity-80 transition-opacity">
             <AvatarImage src={author.avatar_url || undefined} alt={author.display_name} />
             <AvatarFallback className="bg-primary/10 text-primary">
@@ -148,7 +148,7 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-x-2 min-w-0">
               <Link 
-                to={`/@${author.username}`} 
+                to={`/u/${author.username}`} 
                 className="font-semibold text-foreground truncate flex items-center gap-1 hover:underline"
               >
                 {author.display_name}
@@ -157,7 +157,7 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
                 )}
               </Link>
               <Link 
-                to={`/@${author.username}`}
+                to={`/u/${author.username}`}
                 className="text-sm text-muted-foreground truncate hover:underline"
               >
                 {formatHandle(author.username, author.instance)}
