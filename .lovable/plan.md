@@ -1,153 +1,172 @@
 
-# Fix User Profile Routing Issue
 
-## Root Cause Analysis
+# Database + Codebase Alignment & Twitter-like Polish Plan
 
-The user profile pages are returning 404 errors because of a **React Router v6 limitation** with dynamic route segments.
+## Summary of Issues Found
 
-### The Problem
+### Issue 1: Database Trigger Functions Reference Wrong Column
+The notification trigger functions in the database reference `user_id` on tables that don't have that column:
 
-The current route definition is:
-```jsx
-<Route path="/@:username" element={<UserProfilePage />} />
-```
+**Broken Triggers:**
+- `notify_on_favorite()` - References `posts.user_id` (should be `posts.author_id`)
+- `notify_on_boost()` - References `posts.user_id` (should be `posts.author_id`)
+- `notify_on_message()` - References `conversation_participants.user_id` (should be `conversation_participants.profile_id`)
 
-In React Router v6.5+, **dynamic parameters (`:param`) must be the full URL segment**. The path `/@:username` is invalid because:
-- `@` is a static prefix
-- `:username` is a dynamic parameter
-- These are combined into a single segment, which is not allowed
+This is why notifications are not being created when users interact with posts.
 
-This causes the route to never match, and the catch-all `*` route renders the 404 page instead.
+### Issue 2: Profile URL Inconsistency
+Based on user preference for `/u/username` format:
+- Current links use `/@username` format in multiple components
+- `NotificationItem.tsx` uses `/profile/${username}` which doesn't match any route
+- Need to standardize all profile links to `/u/username`
 
-**Evidence**:
-- GitHub Issue #8699: "Can't start route with @ within Layout Routes"
-- Stack Overflow: "dynamic parameters (`:param`) are required to be full url segments"
-- React Router v6.5 release notes explicitly removed support for "partial params" like `/@:param`
+### Issue 3: Outdated Copyright Year
+Two locations show "© 2024":
+- `src/pages/LandingPage.tsx` line 147
+- `src/components/RightSidebar.tsx` line 63
 
----
+### Issue 4: Notifications Realtime Not Enabled
+The `notifications` table is not in the Supabase realtime publication, so the real-time subscription in `useNotifications.tsx` won't work.
 
-## Solution Options
-
-### Option A: Use Full Segment Dynamic Route (Recommended)
-Change the route to `/:username` and handle the `@` prefix in the component and links.
-
-**Pros:**
-- Works with React Router v6.5+ constraints
-- Keeps the Twitter-like `@username` display in URLs
-- Minimal changes to existing link structure
-
-**Cons:**
-- Need to ensure route doesn't conflict with other top-level routes like `/home`, `/search`, etc.
-
-### Option B: Use Different Path Structure
-Change to `/u/:username` or `/profile/:username`.
-
-**Pros:**
-- Clear, unambiguous routing
-- No special character handling
-
-**Cons:**
-- Changes the URL pattern, which may affect user expectations
-- Need to update all links across the app
+### Issue 5: DM Notifications Not Supported
+User requested DM notifications. Currently the `messages` notification type exists in the CHECK constraint and NotificationItem config, but there's no trigger to create them.
 
 ---
 
-## Recommended Implementation (Option A)
+## Implementation Plan
 
-### Step 1: Update Route Definition
-Change from:
-```jsx
-<Route path="/@:username" element={<UserProfilePage />} />
+### Phase 1: Database Migration (Fixes Notification Creation)
+
+Create a migration to fix the trigger functions:
+
+```sql
+-- Fix notify_on_favorite: posts.user_id -> posts.author_id
+CREATE OR REPLACE FUNCTION public.notify_on_favorite()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+  v_recipient_id UUID;
+BEGIN
+  SELECT author_id INTO v_recipient_id FROM posts WHERE id = NEW.post_id;
+  IF v_recipient_id IS DISTINCT FROM NEW.user_id THEN
+    INSERT INTO notifications (recipient_id, actor_id, type, entity_id)
+    VALUES (v_recipient_id, NEW.user_id, 'like', NEW.post_id);
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+-- Fix notify_on_boost: posts.user_id -> posts.author_id
+CREATE OR REPLACE FUNCTION public.notify_on_boost()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+  v_recipient_id UUID;
+BEGIN
+  SELECT author_id INTO v_recipient_id FROM posts WHERE id = NEW.post_id;
+  IF v_recipient_id IS DISTINCT FROM NEW.user_id THEN
+    INSERT INTO notifications (recipient_id, actor_id, type, entity_id)
+    VALUES (v_recipient_id, NEW.user_id, 'boost', NEW.post_id);
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+-- Fix notify_on_message: user_id -> profile_id
+CREATE OR REPLACE FUNCTION public.notify_on_message()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+  v_recipient_id UUID;
+BEGIN
+  SELECT profile_id INTO v_recipient_id FROM conversation_participants 
+  WHERE conversation_id = NEW.conversation_id AND profile_id != NEW.sender_id LIMIT 1;
+
+  IF v_recipient_id IS NOT NULL THEN
+    INSERT INTO notifications (recipient_id, actor_id, type, entity_id)
+    VALUES (v_recipient_id, NEW.sender_id, 'message', NEW.conversation_id);
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+-- Create the message trigger (was missing)
+DROP TRIGGER IF EXISTS tr_notify_on_message ON public.messages;
+CREATE TRIGGER tr_notify_on_message
+  AFTER INSERT ON public.messages
+  FOR EACH ROW EXECUTE FUNCTION notify_on_message();
+
+-- Enable realtime for notifications
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 ```
 
-To:
-```jsx
-<Route path="/:username" element={<UserProfilePage />} />
-```
+### Phase 2: Update Routes & Links (URL Standardization)
 
-### Step 2: Add Route Order Safeguard
-Move the `/:username` route to the END of the child routes to ensure specific routes match first. React Router v6 uses a scoring system, but explicit ordering helps with clarity:
+**Update Route in App.tsx:**
+Change from `/:username` to `/u/:username`
 
-```jsx
-<Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-  <Route path="/home" element={<HomePage />} />
-  <Route path="/public" element={<PublicPage />} />
-  <Route path="/search" element={<SearchPage />} />
-  <Route path="/messages" element={<MessagesPage />} />
-  <Route path="/notifications" element={<NotificationsPage />} />
-  <Route path="/profile" element={<ProfilePage />} />
-  <Route path="/profile/edit" element={<ProfileEditPage />} />
-  <Route path="/settings" element={<SettingsPage />} />
-  {/* Dynamic username route LAST - matches any path like /@username or /username */}
-  <Route path="/:username" element={<UserProfilePage />} />
-</Route>
-```
+**Files to Update Links:**
+| File | Current Pattern | New Pattern |
+|------|----------------|-------------|
+| `src/App.tsx` | `/:username` | `/u/:username` |
+| `src/components/PostCard.tsx` | `/@${author.username}` | `/u/${author.username}` |
+| `src/pages/SearchPage.tsx` | `/@${user.username}` | `/u/${user.username}` |
+| `src/pages/NotificationsPage.tsx` | `/@${notification.actor.username}` | `/u/${notification.actor.username}` |
+| `src/components/NotificationItem.tsx` | `/profile/${username}` | `/u/${username}` |
+| `src/pages/UserProfilePage.tsx` | Remove the `@` stripping logic (no longer needed) |
 
-### Step 3: Update UserProfilePage Component
-Modify the component to handle both `@username` and `username` formats:
+### Phase 3: Copyright Year Update
 
-```typescript
-export default function UserProfilePage() {
-  const { username } = useParams<{ username: string }>();
-  
-  // Strip leading @ if present (e.g., "@jordan" -> "jordan")
-  const cleanUsername = username?.replace(/^@/, "") || "";
-  
-  // Remove the unused isUuid check since federation was removed
-  // ... rest of component stays the same
-}
-```
+Update "2024" to "2026" in:
+- `src/pages/LandingPage.tsx` line 147
+- `src/components/RightSidebar.tsx` line 63
 
-### Step 4: Keep Existing Links (No Change Required)
-The existing links use `/@${username}` format (e.g., `/@jordan`). When clicked:
-1. Browser navigates to `/@jordan`
-2. Route `/:username` matches with `username = "@jordan"`
-3. Component strips the `@` to get `"jordan"`
-4. Profile is fetched using `"jordan"`
+### Phase 4: Twitter-like UI Polish
 
-**Files with links that remain unchanged:**
-- `src/components/PostCard.tsx` - `to={/@${author.username}}`
-- `src/pages/SearchPage.tsx` - `to={/@${user.username}}`
+**Styling Enhancements:**
+1. **Notifications Page** - Already has good Twitter-like styling with dark theme, dividers, and icons
+2. **Profile Page** - Add subtle hover states and improve spacing
+3. **PostCard** - Already well-styled with animations
+4. **Global** - Ensure consistent border colors and background opacity across components
+
+**Specific Tweaks:**
+- Add Twitter-like sticky header blur effect across pages (already present on NotificationsPage)
+- Ensure consistent use of `divide-y divide-border` for list separation
+- Add `hover:bg-accent/30` transitions on clickable list items
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Change route path from `/@:username` to `/:username` and reorder to be last |
-| `src/pages/UserProfilePage.tsx` | Clean up unused `isUuid` variable, ensure `@` is stripped from param |
+| File | Changes |
+|------|---------|
+| Database Migration | Fix 3 trigger functions, add message trigger, enable realtime |
+| `src/App.tsx` | Update route from `/:username` to `/u/:username` |
+| `src/pages/UserProfilePage.tsx` | Remove `@` stripping, update logic |
+| `src/components/PostCard.tsx` | Update 3 links from `/@` to `/u/` |
+| `src/pages/SearchPage.tsx` | Update link from `/@` to `/u/` |
+| `src/pages/NotificationsPage.tsx` | Update 2 links from `/@` to `/u/` |
+| `src/components/NotificationItem.tsx` | Update link function from `/profile/` to `/u/` |
+| `src/pages/LandingPage.tsx` | Update copyright to 2026 |
+| `src/components/RightSidebar.tsx` | Update copyright to 2026 |
 
 ---
 
-## Technical Details
+## Testing Checklist
 
-### Route Matching Verification
-With `/:username` route, React Router will match:
-- `/jordan` - matches, username = "jordan"
-- `/@jordan` - matches, username = "@jordan"
-- `/home` - does NOT match (specific routes have higher priority)
-- `/profile/edit` - does NOT match (more specific path wins)
+After implementation, verify:
+1. Like a post → Notification appears for post author
+2. Boost a post → Notification appears for post author
+3. Follow a user → Notification appears for followed user
+4. Send a DM → Notification appears for recipient
+5. Click notification → Navigates to correct `/u/username` page
+6. Search for user → Click navigates to `/u/username`
+7. Click author on post → Navigates to `/u/username`
+8. Realtime: New notification appears without page refresh
 
-React Router v6 uses a ranking algorithm that gives higher scores to:
-1. More static segments (`/profile/edit` beats `/:username`)
-2. Longer paths
-3. Non-index routes over index routes
-
-### Edge Case: Usernames That Match Routes
-If a user has a username like "home" or "settings", navigating to `/home` would match the `/home` route, not the `/:username` route. This is actually correct behavior - we want the app routes to take precedence.
-
-If a user's username conflicts with an app route:
-- They can still be accessed via `/@home` (becomes username = "@home", stripped to "home")
-- The search page links use `/@${username}` which avoids conflicts
-
----
-
-## Summary
-
-The fix is straightforward:
-1. Change route from `/@:username` to `/:username`
-2. Ensure the route is ordered last among siblings (React Router handles this automatically, but ordering is clearer)
-3. Strip leading `@` in the component when parsing the username
-
-This aligns with React Router v6.5+ requirements where dynamic segments must be complete path segments.
