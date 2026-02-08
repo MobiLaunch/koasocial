@@ -16,7 +16,7 @@ const navItems = [
   { icon: Home, label: "Home", path: "/home" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Globe, label: "Public", path: "/public" },
-  // Add 'badge: true' here if you want it to share the global unread count
+   badge: true
   { icon: MessageCircle, label: "Messages", path: "/messages", badge: true },
   { icon: Bell, label: "Notifications", path: "/notifications", badge: true },
   // ...
