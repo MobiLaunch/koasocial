@@ -38,7 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+      // First try by id (for profiles created with id = user.id)
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+
+      // If not found, try by user_id (legacy profiles)
+      if (!data && !error) {
+        const result = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error("Error fetching profile:", error);
