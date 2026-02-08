@@ -1,12 +1,14 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 
 export function formatRelativeTime(dateString: string): string {
+  if (!dateString) return "";
   const date = new Date(dateString);
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
-export function formatHandle(username: string, instance: string): string {
-  return `@${username}@${instance}`;
+// CHANGED: Removed the 'instance' parameter entirely
+export function formatHandle(username: string): string {
+  return `@${username}`;
 }
 
 export function formatCount(count: number): string {
