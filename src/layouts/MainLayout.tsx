@@ -25,7 +25,7 @@ export default function MainLayout() {
       <div className="lg:ml-72 min-h-screen pt-14 lg:pt-0">
         <div className="flex">
           {/* Main content */}
-          <main className="flex-1 min-h-screen border-r max-w-2xl pb-20 lg:pb-0">
+          <main className="flex-1 min-h-screen border-r border-border/50 max-w-2xl pb-24 lg:pb-0">
             <Outlet key={refreshKey} />
           </main>
 
