@@ -7,7 +7,7 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 // CHANGED: Removed the 'instance' parameter entirely
-export function formatHandle(username: string): string {
+export function formatHandle(user.username): string {
   return `@${username}`;
 }
 
