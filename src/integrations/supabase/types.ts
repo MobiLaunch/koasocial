@@ -224,8 +224,8 @@ export type Database = {
       notifications: {
         Row: {
           actor_id: string
-          created_at: string | null
-          entity_id: string
+          created_at: string
+          entity_id: string | null
           id: string
           is_read: boolean | null
           recipient_id: string
@@ -233,8 +233,8 @@ export type Database = {
         }
         Insert: {
           actor_id: string
-          created_at?: string | null
-          entity_id: string
+          created_at?: string
+          entity_id?: string | null
           id?: string
           is_read?: boolean | null
           recipient_id: string
@@ -242,35 +242,14 @@ export type Database = {
         }
         Update: {
           actor_id?: string
-          created_at?: string | null
-          entity_id?: string
+          created_at?: string
+          entity_id?: string | null
           id?: string
           is_read?: boolean | null
           recipient_id?: string
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_notifications_actor"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_notifications_post"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_notifications_recipient"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "notifications_actor_id_fkey"
             columns: ["actor_id"]
@@ -296,7 +275,7 @@ export type Database = {
           image_url: string | null
           reply_to_id: string | null
           updated_at: string
-          visibility: string
+          visibility: string | null
         }
         Insert: {
           author_id: string
@@ -306,7 +285,7 @@ export type Database = {
           image_url?: string | null
           reply_to_id?: string | null
           updated_at?: string
-          visibility?: string
+          visibility?: string | null
         }
         Update: {
           author_id?: string
@@ -316,7 +295,7 @@ export type Database = {
           image_url?: string | null
           reply_to_id?: string | null
           updated_at?: string
-          visibility?: string
+          visibility?: string | null
         }
         Relationships: [
           {
@@ -341,48 +320,42 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           created_at: string
-          display_name: string
+          display_name: string | null
           id: string
-          instance: string | null
           interests: string[] | null
           is_verified: boolean | null
           social_links: Json | null
           updated_at: string
           user_id: string | null
           username: string
-          verification_tier: string | null
         }
         Insert: {
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
-          display_name: string
-          id?: string
-          instance?: string | null
+          display_name?: string | null
+          id: string
           interests?: string[] | null
           is_verified?: boolean | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string | null
           username: string
-          verification_tier?: string | null
         }
         Update: {
           avatar_url?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
-          display_name?: string
+          display_name?: string | null
           id?: string
-          instance?: string | null
           interests?: string[] | null
           is_verified?: boolean | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string | null
           username?: string
-          verification_tier?: string | null
         }
         Relationships: []
       }
@@ -395,7 +368,7 @@ export type Database = {
           reason: string
           reviewed_at: string | null
           reviewer_notes: string | null
-          status: string
+          status: string | null
         }
         Insert: {
           created_at?: string
@@ -405,7 +378,7 @@ export type Database = {
           reason: string
           reviewed_at?: string | null
           reviewer_notes?: string | null
-          status?: string
+          status?: string | null
         }
         Update: {
           created_at?: string
@@ -415,7 +388,7 @@ export type Database = {
           reason?: string
           reviewed_at?: string | null
           reviewer_notes?: string | null
-          status?: string
+          status?: string | null
         }
         Relationships: [
           {
