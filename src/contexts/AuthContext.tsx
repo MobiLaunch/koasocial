@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,44 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Prevent repeated heavy profile work during token refreshes / rapid auth events
-  const lastProfileLoadedForUserIdRef = useRef<string | null>(null);
-  const initializingRef = useRef(false);
-  const pendingSessionRef = useRef<Session | null | undefined>(undefined);
-
   const fetchProfile = async (userId: string) => {
     try {
-      // Prefer lookup by primary key (profiles.id = auth.users.id)
-      const byId = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
 
-      if (byId.error) {
-        console.error("Error fetching profile (by id):", byId.error);
+      if (error) {
+        console.error("Error fetching profile:", error);
         return null;
       }
 
-      if (byId.data) {
-        return byId.data as Profile;
-      }
-
-      // Fallback to legacy mapping (profiles.user_id)
-      const byUserId = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (byUserId.error) {
-        console.error("Error fetching profile (by user_id):", byUserId.error);
-        return null;
-      }
-
-      return (byUserId.data ?? null) as Profile | null;
+      return data as Profile;
     } catch (error) {
       console.error("Unexpected error in fetchProfile:", error);
       return null;
@@ -86,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const email = user.email || "";
 
       // Generate username from email or fallback to user ID segment
-      const baseUsername = email
+      let username = email
         ? email
             .split("@")[0]
             .toLowerCase()
@@ -95,18 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Ensure unique username
       let attempts = 0;
-      let finalUsername = baseUsername;
+      let finalUsername = username;
 
       while (attempts < 5) {
         const { data: existing } = await supabase
           .from("profiles")
           .select("username")
           .eq("username", finalUsername)
-          .limit(1)
           .maybeSingle();
 
         if (!existing) break;
-        finalUsername = `${baseUsername}_${Math.floor(Math.random() * 1000)}`;
+        finalUsername = `${username}_${Math.floor(Math.random() * 1000)}`;
         attempts++;
       }
 
@@ -117,7 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from("profiles")
         .insert({
           id: user.id,
-          user_id: user.id,
           username: finalUsername,
           display_name: displayName,
           avatar_url: avatarUrl,
@@ -127,10 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error("Error creating profile for OAuth user:", error);
-
-        // If creation failed because it already exists (or due to a race), fall back to fetch.
-        const existing = await fetchProfile(user.id);
-        return existing;
+        return null;
       }
 
       return data as Profile;
@@ -150,10 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileData = await createProfileForOAuthUser(user);
       }
 
-      // If we still don't have a profile, do NOT sign the user out.
-      // Signing out here can cause an auth redirect loop if profile creation is failing for any reason.
+      // FAIL-SAFE: If we still don't have a profile, force sign out to prevent infinite loops
       if (!profileData) {
-        console.error("User authenticated but profile fetch/create failed; continuing without profile.");
+        console.error("Critical: User authenticated but profile creation failed. Signing out.");
+        await supabase.auth.signOut();
         return null;
       }
 
@@ -181,51 +148,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async (nextSession: Session | null) => {
-      if (!mounted) return;
-
-      // Prevent overlapping runs (can happen during rapid auth events / refresh)
-      if (initializingRef.current) {
-        pendingSessionRef.current = nextSession;
-        return;
-      }
-
-      initializingRef.current = true;
-      pendingSessionRef.current = undefined;
-
+    const initializeAuth = async (session: Session | null) => {
       try {
-        setSession((prev) => (prev?.access_token === nextSession?.access_token ? prev : nextSession));
-        setUser((prev) => (prev?.id === (nextSession?.user?.id ?? null) ? prev : nextSession?.user ?? null));
+        setSession(session);
+        setUser(session?.user ?? null);
 
-        const nextUserId = nextSession?.user?.id ?? null;
-
-        if (!nextUserId) {
-          lastProfileLoadedForUserIdRef.current = null;
-          setProfile(null);
-          return;
-        }
-
-        // Only fetch profile when the user changes (avoid heavy work on token refresh)
-        if (lastProfileLoadedForUserIdRef.current !== nextUserId) {
-          const profileData = await fetchOrCreateProfile(nextSession!.user);
+        if (session?.user) {
+          const profileData = await fetchOrCreateProfile(session.user);
           if (mounted) {
             setProfile(profileData);
           }
-          lastProfileLoadedForUserIdRef.current = nextUserId;
+        } else {
+          if (mounted) {
+            setProfile(null);
+          }
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
       } finally {
-        initializingRef.current = false;
         if (mounted) {
           setLoading(false);
-        }
-
-        // If an auth event arrived while we were initializing, immediately process the latest.
-        const pending = pendingSessionRef.current;
-        if (pending !== undefined) {
-          pendingSessionRef.current = undefined;
-          void initializeAuth(pending);
         }
       }
     };
@@ -233,20 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      void initializeAuth(nextSession);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        initializeAuth(session);
+      }
     });
-
-    // Prime initial session state
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        void initializeAuth(data.session);
-      })
-      .catch((error) => {
-        console.error("Error getting initial session:", error);
-        if (mounted) setLoading(false);
-      });
 
     return () => {
       mounted = false;
