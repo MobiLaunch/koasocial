@@ -1,5 +1,5 @@
 import { useState, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Sparkles, ArrowRight, Mail, Lock, User, AtSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,52 +41,47 @@ function AnimatedBlob({
 }
 
 // Tactile button with press effect
-function TactileButton({
-  children,
-  className,
-  variant = 'primary',
-  isLoading,
-  type = 'button',
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  variant?: 'primary' | 'secondary' | 'outline';
+interface TactileButtonProps extends React.ComponentPropsWithoutRef<"button"> {
+  variant?: "primary" | "secondary" | "outline";
   isLoading?: boolean;
-  type?: 'button' | 'submit';
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
-  const baseClasses = "relative w-full h-14 rounded-2xl font-bold text-base transition-all duration-200 transform active:scale-[0.97] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group";
-  
-  const variantClasses = {
-    primary: "bg-gradient-to-br from-primary via-primary to-[hsl(var(--koa-coral))] text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5",
-    secondary: "bg-gradient-to-br from-secondary via-secondary to-[hsl(var(--koa-teal))] text-secondary-foreground shadow-lg shadow-secondary/25 hover:shadow-xl hover:shadow-secondary/30 hover:-translate-y-0.5",
-    outline: "border-2 border-border bg-card/50 backdrop-blur-sm text-foreground hover:bg-accent/20 hover:border-primary/50",
-  };
-
-  return (
-    <button
-      type={type}
-      className={cn(baseClasses, variantClasses[variant], className)}
-      disabled={isLoading || disabled}
-      onClick={onClick}
-    >
-      {/* Ripple effect layer */}
-      <span className="absolute inset-0 bg-white/20 opacity-0 group-active:opacity-100 transition-opacity duration-150" />
-      
-      {/* Shine effect */}
-      <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-      </span>
-      
-      <span className="relative flex items-center justify-center gap-2">
-        {children}
-      </span>
-    </button>
-  );
 }
+
+const TactileButton = forwardRef<HTMLButtonElement, TactileButtonProps>(
+  ({ children, className, variant = "primary", isLoading, disabled, ...props }, ref) => {
+    const baseClasses =
+      "relative w-full h-14 rounded-2xl font-bold text-base transition-all duration-200 transform active:scale-[0.97] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group";
+
+    const variantClasses = {
+      primary:
+        "bg-gradient-to-br from-primary via-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5",
+      secondary:
+        "bg-gradient-to-br from-secondary via-secondary to-accent text-secondary-foreground shadow-lg shadow-secondary/25 hover:shadow-xl hover:shadow-secondary/30 hover:-translate-y-0.5",
+      outline:
+        "border-2 border-border bg-card/50 backdrop-blur-sm text-foreground hover:bg-accent/20 hover:border-primary/50",
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={cn(baseClasses, variantClasses[variant], className)}
+        disabled={isLoading || disabled}
+        {...props}
+      >
+        {/* Ripple effect layer */}
+        <span className="absolute inset-0 bg-white/20 opacity-0 group-active:opacity-100 transition-opacity duration-150" />
+
+        {/* Shine effect */}
+        <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+          <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        </span>
+
+        <span className="relative flex items-center justify-center gap-2">{children}</span>
+      </button>
+    );
+  }
+);
+
+TactileButton.displayName = "TactileButton";
 
 // Floating input with animated label - using forwardRef
 interface FloatingInputProps {
@@ -198,7 +193,6 @@ export default function AuthPage() {
     displayName: '',
   });
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleModeSwitch = () => {
     setIsLogin(!isLogin);
@@ -236,13 +230,15 @@ export default function AuthPage() {
         if (error) throw error;
 
         toast({ title: 'Welcome back!', description: 'You have been signed in.' });
-        navigate('/home');
+        // Avoid navigating immediately—ProtectedRoute can bounce back to /auth before the auth state propagates.
+        // AuthRoute will redirect to /home once the session is available.
       } else {
         // Check if username is taken
         const { data: existingUser } = await supabase
           .from('profiles')
           .select('username')
           .eq('username', formData.username.toLowerCase())
+          .limit(1)
           .maybeSingle();
 
         if (existingUser) {
@@ -260,9 +256,10 @@ export default function AuthPage() {
         if (error) throw error;
 
         if (data.user) {
-          // Create profile
+          // Create profile (also populate user_id because other backend rules rely on it)
           const { error: profileError } = await supabase.from('profiles').insert({
             id: data.user.id,
+            user_id: data.user.id,
             username: formData.username.toLowerCase(),
             display_name: formData.displayName || formData.username,
           } as any);
@@ -531,9 +528,13 @@ export default function AuthPage() {
             <div className="mt-6 text-center text-xs text-muted-foreground">
               <p>
                 By continuing, you agree to our{' '}
-                <a href="/terms" className="text-primary hover:underline">Terms</a>
+                <Link to="/terms" className="text-primary hover:underline">
+                  Terms
+                </Link>
                 {' '}and{' '}
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+                <Link to="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
               </p>
             </div>
           </div>
