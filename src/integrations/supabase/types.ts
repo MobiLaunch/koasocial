@@ -179,12 +179,37 @@ export type Database = {
           },
         ]
       }
+      hashtags: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          tag: string
+          usage_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          tag: string
+          usage_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          tag?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
           conversation_id: string
           created_at: string
           id: string
+          read_at: string | null
           sender_id: string
           updated_at: string
         }
@@ -193,6 +218,7 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
+          read_at?: string | null
           sender_id: string
           updated_at?: string
         }
@@ -201,6 +227,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          read_at?: string | null
           sender_id?: string
           updated_at?: string
         }
