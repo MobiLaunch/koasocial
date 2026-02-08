@@ -1,25 +1,25 @@
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, LogOut, MessageCircle } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
-import { Logo } from '@/components/Logo';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, LogOut, MessageCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Logo } from "@/components/Logo";
 
 interface AppSidebarProps {
   onCompose: () => void;
 }
 
 const navItems = [
-  { icon: Home, label: 'Home', path: '/home' },
-  { icon: Search, label: 'Search', path: '/search' },
-  { icon: Globe, label: 'Public', path: '/public' },
-  { icon: MessageCircle, label: 'Messages', path: '/messages' },
-  { icon: Bell, label: 'Notifications', path: '/notifications', badge: true },
-  { icon: User, label: 'Profile', path: '/profile' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Home, label: "Home", path: "/home" },
+  { icon: Search, label: "Search", path: "/search" },
+  { icon: Globe, label: "Public", path: "/public" },
+  // Add 'badge: true' here if you want it to share the global unread count
+  { icon: MessageCircle, label: "Messages", path: "/messages", badge: true },
+  { icon: Bell, label: "Notifications", path: "/notifications", badge: true },
+  // ...
 ];
 
 export function AppSidebar({ onCompose }: AppSidebarProps) {
@@ -31,12 +31,12 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
 
   const toggleTheme = () => {
     setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+    document.documentElement.classList.toggle("dark");
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -58,17 +58,16 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
                 "flex items-center gap-4 px-4 py-3.5 rounded-2xl mb-1 transition-all duration-300 group",
                 isActive
                   ? "bg-primary/10 text-primary font-semibold"
-                  : "text-foreground hover:bg-surface-container-high"
+                  : "text-foreground hover:bg-surface-container-high",
               )}
             >
               <div className="relative">
-                <item.icon className={cn(
-                  "h-6 w-6 transition-transform duration-200",
-                  !isActive && "group-hover:scale-110"
-                )} />
+                <item.icon
+                  className={cn("h-6 w-6 transition-transform duration-200", !isActive && "group-hover:scale-110")}
+                />
                 {item.badge && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center shadow-sm">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </div>
@@ -97,7 +96,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
           onClick={toggleTheme}
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+          <span>{isDark ? "Light mode" : "Dark mode"}</span>
         </Button>
 
         {/* Sign out */}
