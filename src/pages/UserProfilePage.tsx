@@ -195,7 +195,7 @@ export default function UserProfilePage() {
             {profile.display_name}
             {(profile as any).is_verified && <VerifiedBadge tier={(profile as any).verification_tier} size="lg" />}
           </h1>
-          <p className="text-muted-foreground">{formatHandle(profile.username, profile.instance)}</p>
+          <p className="text-muted-foreground">{formatHandle(profile.username)}</p>
         </div>
 
         {/* Bio */}

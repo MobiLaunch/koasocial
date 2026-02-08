@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // --- 1. Clean Types ---
 
-export type NotificationType = "like" | "boost" | "reply" | "follow";
+export type NotificationType = "like" | "boost" | "reply" | "follow" | "mention" | "message";
 
 export interface Profile {
   id: string;
@@ -12,6 +12,7 @@ export interface Profile {
   bio?: string | null;
   banner_url?: string | null;
   is_verified?: boolean | null;
+  verification_tier?: string | null;
   created_at?: string;
   interests?: string[] | null;
   social_links?: Record<string, string> | null;

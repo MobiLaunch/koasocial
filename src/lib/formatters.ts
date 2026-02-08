@@ -6,8 +6,7 @@ export function formatRelativeTime(dateString: string): string {
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
-// CHANGED: Removed the 'instance' parameter entirely
-export function formatHandle(user.username): string {
+export function formatHandle(username: string): string {
   return `@${username}`;
 }
 

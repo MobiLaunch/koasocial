@@ -160,7 +160,7 @@ export function PostCard({ post, onReply, onInteractionChange }: PostCardProps) 
                 to={`/u/${author.username}`}
                 className="text-sm text-muted-foreground truncate hover:underline"
               >
-                {formatHandle(author.username, author.instance)}
+                {formatHandle(author.username)}
               </Link>
               <span className="text-sm text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground whitespace-nowrap">

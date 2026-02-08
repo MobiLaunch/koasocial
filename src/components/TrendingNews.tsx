@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
+import { NewsArticleModal } from '@/components/NewsArticleModal';
 
 interface NewsSource {
   id: string;
@@ -70,27 +71,21 @@ function formatTimeAgo(dateString: string): string {
   return `${diffDays}d ago`;
 }
 
-// Clean text from HTML entities and encoding issues - using DOMParser for safety
 function cleanText(text: string): string {
   if (!text) return '';
   
-  // Decode HTML entities safely using DOMParser (not innerHTML which can execute scripts)
   if (typeof document !== 'undefined' && typeof DOMParser !== 'undefined') {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, 'text/html');
-      // Get only the text content, stripping all HTML
       text = doc.body.textContent || '';
     } catch {
-      // Fallback: strip HTML tags with regex if DOMParser fails
       text = text.replace(/<[^>]*>/g, '');
     }
   } else {
-    // Server-side fallback: strip HTML tags
     text = text.replace(/<[^>]*>/g, '');
   }
   
-  // Fix common encoding issues that may remain
   text = text
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -167,29 +162,32 @@ function BiasLabel({ bias, biasLabel }: { bias: string; biasLabel: string }) {
   );
 }
 
-function NewsCard({ item }: { item: NewsItem }) {
+interface NewsCardProps {
+  item: NewsItem;
+  onClick: () => void;
+}
+
+function NewsCard({ item, onClick }: NewsCardProps) {
   const cleanTitle = cleanText(item.title);
   const cleanDescription = cleanText(item.description);
   
   return (
-    <a 
-      href={item.link} 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="block p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border overflow-hidden"
+    <button 
+      onClick={onClick}
+      className="block w-full text-left p-3 rounded-xl hover:bg-accent/50 transition-all duration-200 border border-transparent hover:border-primary/20 hover:shadow-sm overflow-hidden group"
     >
       <div className="flex items-start justify-between gap-2 mb-1.5 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="text-xs font-medium text-primary shrink-0">{item.source.name}</span>
+          <span className="text-xs font-semibold text-primary shrink-0">{item.source.name}</span>
           <BiasLabel bias={item.source.bias} biasLabel={item.source.biasLabel} />
           <CredibilityMeter score={item.source.credibilityScore} credibility={item.source.credibility} />
         </div>
         <div className="flex items-center gap-1 text-muted-foreground shrink-0">
           <span className="text-[10px]">{formatTimeAgo(item.pubDate)}</span>
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
-      <h4 className="font-medium text-sm leading-snug mb-1 line-clamp-2 break-words">
+      <h4 className="font-medium text-sm leading-snug mb-1 line-clamp-2 break-words group-hover:text-primary transition-colors">
         {cleanTitle}
       </h4>
       {cleanDescription && (
@@ -197,7 +195,7 @@ function NewsCard({ item }: { item: NewsItem }) {
           {cleanDescription}
         </p>
       )}
-    </a>
+    </button>
   );
 }
 
@@ -210,6 +208,7 @@ export function TrendingNews({ fullPage = false }: TrendingNewsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     async function fetchNews() {
@@ -231,22 +230,23 @@ export function TrendingNews({ fullPage = false }: TrendingNewsProps) {
     }
 
     fetchNews();
-    // Refresh every 5 minutes
     const interval = setInterval(fetchNews, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border-0 koa-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Newspaper className="h-4 w-4" />
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Newspaper className="h-4 w-4 text-primary" />
+            </div>
             Trending News
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -254,10 +254,12 @@ export function TrendingNews({ fullPage = false }: TrendingNewsProps) {
 
   if (error || !news) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border-0 koa-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Newspaper className="h-4 w-4" />
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Newspaper className="h-4 w-4 text-primary" />
+            </div>
             Trending News
           </CardTitle>
         </CardHeader>
@@ -279,60 +281,75 @@ export function TrendingNews({ fullPage = false }: TrendingNewsProps) {
   };
 
   return (
-    <Card className={`overflow-hidden ${fullPage ? 'border-0 shadow-none' : ''}`}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          Trending News
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Sources rated for bias & factual accuracy
-        </p>
-      </CardHeader>
-      <CardContent className="pt-0 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full h-8 mb-2">
-            <TabsTrigger value="all" className="flex-1 text-xs gap-1 h-7">
-              <Newspaper className="h-3 w-3" />
-              All
-            </TabsTrigger>
-            <TabsTrigger value="world" className="flex-1 text-xs gap-1 h-7">
-              <Globe className="h-3 w-3" />
-              World
-            </TabsTrigger>
-            <TabsTrigger value="finance" className="flex-1 text-xs gap-1 h-7">
-              <DollarSign className="h-3 w-3" />
-              Finance
-            </TabsTrigger>
-          </TabsList>
+    <>
+      <Card className={`overflow-hidden rounded-2xl ${fullPage ? 'border-0 shadow-none' : 'border-0 koa-shadow'}`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+            Trending News
+          </CardTitle>
+          <p className="text-xs text-muted-foreground ml-10">
+            Sources rated for bias & factual accuracy
+          </p>
+        </CardHeader>
+        <CardContent className="pt-0 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full h-9 mb-3 rounded-xl bg-surface-container p-1">
+              <TabsTrigger value="all" className="flex-1 text-xs gap-1.5 h-7 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Newspaper className="h-3 w-3" />
+                All
+              </TabsTrigger>
+              <TabsTrigger value="world" className="flex-1 text-xs gap-1.5 h-7 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Globe className="h-3 w-3" />
+                World
+              </TabsTrigger>
+              <TabsTrigger value="finance" className="flex-1 text-xs gap-1.5 h-7 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <DollarSign className="h-3 w-3" />
+                Finance
+              </TabsTrigger>
+            </TabsList>
 
-          <div className={`space-y-1 overflow-y-auto overflow-x-hidden ${fullPage ? 'max-h-none' : 'max-h-[400px]'}`}>
-            {getNewsForTab().length > 0 ? (
-              getNewsForTab().map((item) => (
-                <NewsCard key={item.id} item={item} />
-              ))
-            ) : (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                No news available
-              </p>
-            )}
-          </div>
-        </Tabs>
+            <div className={`space-y-1 overflow-y-auto overflow-x-hidden ${fullPage ? 'max-h-none' : 'max-h-[400px]'}`}>
+              {getNewsForTab().length > 0 ? (
+                getNewsForTab().map((item) => (
+                  <NewsCard 
+                    key={item.id} 
+                    item={item} 
+                    onClick={() => setSelectedArticle(item)}
+                  />
+                ))
+              ) : (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  No news available
+                </p>
+              )}
+            </div>
+          </Tabs>
 
-        {/* Legend */}
-        <div className="mt-3 pt-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground mb-2">Bias Scale:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(biasColors).map(([bias, colors]) => (
-              <span key={bias}>
-                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${colors}`}>
-                  {bias.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}
-                </Badge>
-              </span>
-            ))}
+          {/* Legend */}
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground mb-2">Bias Scale:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(biasColors).map(([bias, colors]) => (
+                <span key={bias}>
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${colors}`}>
+                    {bias.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}
+                  </Badge>
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Article Modal */}
+      <NewsArticleModal
+        article={selectedArticle}
+        isOpen={!!selectedArticle}
+        onClose={() => setSelectedArticle(null)}
+      />
+    </>
   );
 }
