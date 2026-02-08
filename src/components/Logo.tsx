@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   linkTo?: string;
   className?: string;
 }
 const sizeClasses = {
   sm: 'text-xl',
   md: 'text-2xl',
-  lg: 'text-3xl'
+  lg: 'text-3xl',
+  xl: 'text-4xl'
 };
 export function Logo({
   size = 'md',
