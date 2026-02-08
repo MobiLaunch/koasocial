@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Sparkles, ArrowRight, Mail, Lock, User, AtSign } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
@@ -49,10 +46,17 @@ function TactileButton({
   className,
   variant = 'primary',
   isLoading,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  type = 'button',
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  className?: string;
   variant?: 'primary' | 'secondary' | 'outline';
   isLoading?: boolean;
+  type?: 'button' | 'submit';
+  onClick?: () => void;
+  disabled?: boolean;
 }) {
   const baseClasses = "relative w-full h-14 rounded-2xl font-bold text-base transition-all duration-200 transform active:scale-[0.97] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden group";
   
@@ -64,9 +68,10 @@ function TactileButton({
 
   return (
     <button
+      type={type}
       className={cn(baseClasses, variantClasses[variant], className)}
-      disabled={isLoading}
-      {...props}
+      disabled={isLoading || disabled}
+      onClick={onClick}
     >
       {/* Ripple effect layer */}
       <span className="absolute inset-0 bg-white/20 opacity-0 group-active:opacity-100 transition-opacity duration-150" />
@@ -83,20 +88,8 @@ function TactileButton({
   );
 }
 
-// Floating input with animated label
-function FloatingInput({
-  id,
-  type = 'text',
-  label,
-  icon: Icon,
-  value,
-  onChange,
-  required,
-  autoComplete,
-  showPasswordToggle,
-  showPassword,
-  onTogglePassword,
-}: {
+// Floating input with animated label - using forwardRef
+interface FloatingInputProps {
   id: string;
   type?: string;
   label: string;
@@ -108,7 +101,21 @@ function FloatingInput({
   showPasswordToggle?: boolean;
   showPassword?: boolean;
   onTogglePassword?: () => void;
-}) {
+}
+
+const FloatingInput = forwardRef<HTMLInputElement, FloatingInputProps>(({
+  id,
+  type = 'text',
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  required,
+  autoComplete,
+  showPasswordToggle,
+  showPassword,
+  onTogglePassword,
+}, ref) => {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = value.length > 0;
   const isActive = isFocused || hasValue;
@@ -117,14 +124,14 @@ function FloatingInput({
     <div className="relative group">
       {/* Glow effect on focus */}
       <div className={cn(
-        "absolute inset-0 rounded-2xl transition-opacity duration-300",
-        "bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 blur-xl opacity-0",
+        "absolute -inset-0.5 rounded-2xl transition-opacity duration-300 pointer-events-none",
+        "bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 blur-md opacity-0",
         isFocused && "opacity-100"
       )} />
       
       <div className={cn(
-        "relative flex items-center h-14 rounded-2xl border-2 transition-all duration-300 bg-card/80 backdrop-blur-sm",
-        isFocused ? "border-primary shadow-lg shadow-primary/10" : "border-border/50 hover:border-border"
+        "relative flex items-center h-14 rounded-2xl border-2 transition-all duration-300 bg-card/90 backdrop-blur-sm",
+        isFocused ? "border-primary shadow-lg shadow-primary/10" : "border-border hover:border-muted-foreground/50"
       )}>
         {/* Icon */}
         <div className={cn(
@@ -136,6 +143,7 @@ function FloatingInput({
         
         {/* Input */}
         <input
+          ref={ref}
           id={id}
           type={showPasswordToggle ? (showPassword ? 'text' : 'password') : type}
           value={value}
@@ -144,22 +152,22 @@ function FloatingInput({
           onBlur={() => setIsFocused(false)}
           required={required}
           autoComplete={autoComplete}
-          className="flex-1 h-full bg-transparent px-3 pt-4 text-base outline-none placeholder-transparent peer"
-          placeholder={label}
+          className="flex-1 h-full bg-transparent px-3 pt-3 text-base outline-none text-foreground caret-primary"
+          placeholder=" "
         />
         
         {/* Floating label */}
-        <Label
+        <label
           htmlFor={id}
           className={cn(
-            "absolute left-12 transition-all duration-300 pointer-events-none",
+            "absolute left-12 transition-all duration-200 pointer-events-none select-none",
             isActive
-              ? "top-1 text-xs font-semibold text-primary"
-              : "top-1/2 -translate-y-1/2 text-base text-muted-foreground"
+              ? "top-1.5 text-[11px] font-semibold text-primary"
+              : "top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
           )}
         >
           {label}
-        </Label>
+        </label>
         
         {/* Password toggle */}
         {showPasswordToggle && (
@@ -167,6 +175,7 @@ function FloatingInput({
             type="button"
             onClick={onTogglePassword}
             className="pr-4 text-muted-foreground hover:text-foreground transition-colors"
+            tabIndex={-1}
           >
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
@@ -174,13 +183,14 @@ function FloatingInput({
       </div>
     </div>
   );
-}
+});
+
+FloatingInput.displayName = 'FloatingInput';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -191,11 +201,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   const handleModeSwitch = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsLogin(!isLogin);
-      setIsTransitioning(false);
-    }, 150);
+    setIsLogin(!isLogin);
   };
 
   const handleGoogleSignIn = async () => {
@@ -212,7 +218,6 @@ export default function AuthPage() {
         description: error.message,
         variant: 'destructive',
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -238,7 +243,7 @@ export default function AuthPage() {
           .from('profiles')
           .select('username')
           .eq('username', formData.username.toLowerCase())
-          .single();
+          .maybeSingle();
 
         if (existingUser) {
           throw new Error('Username is already taken');
@@ -344,10 +349,10 @@ export default function AuthPage() {
             key={i}
             className="absolute w-2 h-2 rounded-full bg-primary/20 animate-float"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${10 + (i * 7) % 80}%`,
+              top: `${15 + (i * 11) % 70}%`,
               animationDelay: `${i * 0.5}s`,
-              animationDuration: `${4 + Math.random() * 4}s`,
+              animationDuration: `${4 + (i % 4)}s`,
             }}
           />
         ))}
@@ -361,19 +366,14 @@ export default function AuthPage() {
       )}
 
       {/* Logo in corner */}
-      <div className="absolute top-6 left-6 z-10 animate-fade-in">
+      <div className="absolute top-6 left-6 z-10">
         <Logo size="md" />
       </div>
 
       {/* Main card */}
-      <div 
-        className={cn(
-          "relative w-full max-w-md transition-all duration-500",
-          isTransitioning && "scale-95 opacity-50"
-        )}
-      >
+      <div className="relative w-full max-w-md">
         {/* Card glow effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 rounded-[2rem] blur-xl opacity-75 animate-pulse" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 rounded-[2rem] blur-xl opacity-75" />
         
         <div className="relative bg-card/90 backdrop-blur-xl rounded-[2rem] border border-border/50 shadow-2xl shadow-primary/10 overflow-hidden">
           {/* Decorative top gradient bar */}
@@ -383,7 +383,7 @@ export default function AuthPage() {
           <div className="px-8 pt-10 pb-4 text-center">
             <div className="flex justify-center mb-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl animate-pulse" />
+                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
                 <Logo size="xl" linkTo="/" />
               </div>
             </div>
@@ -401,18 +401,16 @@ export default function AuthPage() {
           {/* Form */}
           <div className="px-8 pb-8">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Sign up fields - conditionally rendered */}
               {!isLogin && (
-                <div className={cn(
-                  "space-y-4 transition-all duration-300",
-                  !isLogin ? "opacity-100 max-h-[200px]" : "opacity-0 max-h-0 overflow-hidden"
-                )}>
+                <div className="space-y-4">
                   <FloatingInput
                     id="username"
                     label="Username"
                     icon={AtSign}
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required={!isLogin}
+                    required
                     autoComplete="username"
                   />
 
