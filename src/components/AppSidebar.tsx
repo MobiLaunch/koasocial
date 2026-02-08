@@ -16,10 +16,11 @@ const navItems = [
   { icon: Home, label: "Home", path: "/home" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Globe, label: "Public", path: "/public" },
-  'badge:true'
+  // Fixed: Added badge: true correctly here
   { icon: MessageCircle, label: "Messages", path: "/messages", badge: true },
   { icon: Bell, label: "Notifications", path: "/notifications", badge: true },
-  // ...
+  { icon: User, label: "Profile", path: "/profile" },
+  { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export function AppSidebar({ onCompose }: AppSidebarProps) {
@@ -65,6 +66,7 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
                 <item.icon
                   className={cn("h-6 w-6 transition-transform duration-200", !isActive && "group-hover:scale-110")}
                 />
+                {/* Notification Badge Logic */}
                 {item.badge && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center shadow-sm">
                     {unreadCount > 9 ? "9+" : unreadCount}
