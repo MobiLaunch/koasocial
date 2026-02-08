@@ -158,7 +158,7 @@ export default function ProfilePage() {
             )}
           </div>
           <p className="text-muted-foreground mt-1 font-medium">
-            {formatHandle(profile.username, profile.instance)}
+            {formatHandle(profile.username)}
           </p>
         </div>
 

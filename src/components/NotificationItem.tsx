@@ -1,4 +1,4 @@
-import { Heart, Repeat2, MessageCircle, UserPlus, Bell } from "lucide-react";
+import { Heart, Repeat2, MessageCircle, UserPlus, Bell, AtSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,20 @@ const notificationConfig = {
     bgColor: "bg-green-500/10",
     getText: () => "sent you a message",
     getLink: () => `/messages`,
+  },
+  mention: {
+    icon: AtSign,
+    color: "text-purple-500",
+    bgColor: "bg-purple-500/10",
+    getText: () => "mentioned you in a post",
+    getLink: (username: string, entityId: string) => `/post/${entityId}`,
+  },
+  reply: {
+    icon: MessageCircle,
+    color: "text-teal-500",
+    bgColor: "bg-teal-500/10",
+    getText: () => "replied to your post",
+    getLink: (username: string, entityId: string) => `/post/${entityId}`,
   },
 };
 
@@ -84,8 +98,8 @@ export function NotificationItem({ notification }: NotificationItemProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-foreground text-sm sm:text-base">
                   <span className="font-semibold">{actor.display_name || actor.username}</span>
-                  {actor.is_verified && (
-                    <VerifiedBadge tier={actor.verification_tier} size="sm" className="inline ml-1" />
+                  {(actor as any).is_verified && (
+                    <VerifiedBadge tier={(actor as any).verification_tier} size="sm" className="inline ml-1" />
                   )}{" "}
                   <span className="text-muted-foreground">{config.getText()}</span>
                 </p>

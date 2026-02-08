@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,10 +83,10 @@ export default function AuthPage() {
         if (data.user) {
           // Create profile
           const { error: profileError } = await supabase.from('profiles').insert({
-            user_id: data.user.id,
+            id: data.user.id,
             username: formData.username.toLowerCase(),
             display_name: formData.displayName || formData.username,
-          });
+          } as any);
 
           if (profileError) throw profileError;
         }
@@ -123,14 +123,10 @@ export default function AuthPage() {
         </div>
       )}
 
-      {/* Back button */}
-      <Link 
-        to="/" 
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="text-sm font-medium">Back</span>
-      </Link>
+      {/* Logo in corner for branding */}
+      <div className="absolute top-6 left-6">
+        <Logo size="md" />
+      </div>
 
       <Card className="w-full max-w-md rounded-3xl border-0 koa-shadow-lg bg-card/95 backdrop-blur-sm relative animate-scale-in">
         <CardHeader className="text-center pb-2 pt-8">

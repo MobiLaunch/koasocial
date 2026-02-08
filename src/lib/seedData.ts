@@ -159,14 +159,13 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
       const { data, error } = await supabase
         .from('profiles')
         .insert({
-          user_id: dummyUserId,
+          id: dummyUserId,
           username: profile.username,
           display_name: profile.display_name,
           bio: profile.bio,
           avatar_url: profile.avatar_url,
           is_verified: profile.is_verified || false,
-          verification_tier: profile.verification_tier || null,
-        })
+        } as any)
         .select()
         .single();
 

@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/hooks/use-realtime-chat'
+import { Check, CheckCheck } from 'lucide-react'
 
 interface ChatMessageItemProps {
   message: ChatMessage
@@ -26,14 +27,25 @@ export const ChatMessageItem = ({ message, isOwnMessage }: ChatMessageItemProps)
         </div>
         <div
           className={cn(
-            'py-2 px-3 rounded-xl text-sm w-fit break-words',
+            'py-2.5 px-4 rounded-2xl text-sm w-fit break-words shadow-sm',
             isOwnMessage
-              ? 'bg-primary text-primary-foreground rounded-br-none'
-              : 'bg-muted text-foreground rounded-bl-none'
+              ? 'bg-primary text-primary-foreground rounded-br-md'
+              : 'bg-surface-container-high text-foreground rounded-bl-md'
           )}
         >
           {message.content}
         </div>
+        
+        {/* Read receipt indicator for own messages */}
+        {isOwnMessage && (
+          <div className="flex items-center gap-1 px-1">
+            {message.readAt ? (
+              <CheckCheck className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <Check className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
