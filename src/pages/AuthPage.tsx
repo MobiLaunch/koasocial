@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
@@ -107,53 +108,76 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md rounded-2xl koa-shadow">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-10 w-64 h-64 bg-secondary/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Loading indicator at top */}
+      {isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <LoadingIndicator size="sm" />
+        </div>
+      )}
+
+      {/* Back button */}
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        <span className="text-sm font-medium">Back</span>
+      </Link>
+
+      <Card className="w-full max-w-md rounded-3xl border-0 koa-shadow-lg bg-card/95 backdrop-blur-sm relative animate-scale-in">
+        <CardHeader className="text-center pb-2 pt-8">
+          <div className="flex justify-center mb-6">
             <Logo size="lg" linkTo="/" />
           </div>
-          <CardTitle className="font-display text-2xl">
+          <CardTitle className="text-headline-medium">
             {isLogin ? 'Welcome back!' : 'Join koasocial'}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base">
             {isLogin
               ? 'Sign in to your account to continue'
               : 'Create your account and start sharing'}
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="px-8 pb-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username" className="text-sm font-semibold">Username</Label>
                   <Input
                     id="username"
                     placeholder="koala_lover"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     required={!isLogin}
-                    className="rounded-xl"
+                    className="h-12 rounded-xl border-2 border-border focus:border-primary transition-colors"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
+                  <Label htmlFor="displayName" className="text-sm font-semibold">Display Name</Label>
                   <Input
                     id="displayName"
                     placeholder="Koala 🐨"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    className="rounded-xl"
+                    className="h-12 rounded-xl border-2 border-border focus:border-primary transition-colors"
                   />
                 </div>
               </>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -161,12 +185,12 @@ export default function AuthPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                className="rounded-xl"
+                className="h-12 rounded-xl border-2 border-border focus:border-primary transition-colors"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -175,23 +199,24 @@ export default function AuthPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  className="rounded-xl pr-10"
+                  className="h-12 rounded-xl pr-12 border-2 border-border focus:border-primary transition-colors"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  className="absolute right-1 top-1 h-10 w-10 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-5 w-5 text-muted-foreground" /> : <Eye className="h-5 w-5 text-muted-foreground" />}
                 </Button>
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full rounded-xl h-12 text-lg koa-gradient text-primary-foreground hover:opacity-90"
+              size="lg"
+              className="w-full h-12 rounded-xl text-base koa-gradient text-primary-foreground koa-shadow hover:koa-shadow-lg"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -199,23 +224,27 @@ export default function AuthPage() {
               ) : isLogin ? (
                 'Sign in'
               ) : (
-                'Create account'
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Create account
+                </>
               )}
             </Button>
 
-            <div className="relative my-6">
+            <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t-2 border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-4 text-muted-foreground font-semibold tracking-wide">Or continue with</span>
               </div>
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="w-full rounded-xl h-12 gap-2"
+              size="lg"
+              className="w-full h-12 rounded-xl gap-3 border-2 hover:bg-accent/50"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
             >
@@ -241,13 +270,13 @@ export default function AuthPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-8 text-center text-sm">
             {isLogin ? (
               <p className="text-muted-foreground">
                 Don't have an account?{' '}
                 <button
                   onClick={() => setIsLogin(false)}
-                  className="text-primary font-medium hover:underline"
+                  className="text-primary font-semibold hover:underline"
                 >
                   Sign up
                 </button>
@@ -257,7 +286,7 @@ export default function AuthPage() {
                 Already have an account?{' '}
                 <button
                   onClick={() => setIsLogin(true)}
-                  className="text-primary font-medium hover:underline"
+                  className="text-primary font-semibold hover:underline"
                 >
                   Sign in
                 </button>

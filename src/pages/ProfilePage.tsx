@@ -9,6 +9,7 @@ import { PostCard } from '@/components/PostCard';
 import { SocialLinksDisplay } from '@/components/SocialLinksDisplay';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { VerificationRequestModal } from '@/components/VerificationRequestModal';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchPosts, getUserInteractions, type Post } from '@/lib/api';
 import { formatCount, formatHandle } from '@/lib/formatters';
@@ -71,8 +72,9 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium">Loading profile...</p>
       </div>
     );
   }

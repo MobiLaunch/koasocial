@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, Menu, X, LogOut, MessageCircle } from 'lucide-react';
+import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, LogOut, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,6 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
   const [isDark, setIsDark] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -40,33 +39,35 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
     navigate('/');
   };
 
-  const NavContent = () => (
-    <>
+  return (
+    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r border-border/50 flex-col">
       {/* Logo */}
-      <div className="px-4 py-3 mb-4">
+      <div className="px-5 py-5 mb-2">
         <Logo size="md" linkTo="/home" />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2">
+      <nav className="flex-1 px-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              onClick={() => setIsMobileOpen(false)}
               className={cn(
-                "flex items-center gap-4 px-4 py-3 rounded-xl mb-1 transition-all duration-200",
+                "flex items-center gap-4 px-4 py-3.5 rounded-2xl mb-1 transition-all duration-300 group",
                 isActive
                   ? "bg-primary/10 text-primary font-semibold"
-                  : "text-foreground hover:bg-accent"
+                  : "text-foreground hover:bg-surface-container-high"
               )}
             >
               <div className="relative">
-                <item.icon className="h-6 w-6" />
+                <item.icon className={cn(
+                  "h-6 w-6 transition-transform duration-200",
+                  !isActive && "group-hover:scale-110"
+                )} />
                 {item.badge && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center shadow-sm">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -76,13 +77,11 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
           );
         })}
 
-        {/* Compose button */}
+        {/* Compose button - M3 Extended FAB style */}
         <Button
-          onClick={() => {
-            onCompose();
-            setIsMobileOpen(false);
-          }}
-          className="w-full mt-4 h-12 rounded-xl text-lg font-semibold koa-gradient text-primary-foreground hover:opacity-90 koa-shadow"
+          onClick={onCompose}
+          size="lg"
+          className="w-full mt-6 h-14 rounded-2xl text-base font-semibold koa-gradient text-primary-foreground koa-shadow-lg hover:koa-shadow-xl transition-all duration-300 hover:-translate-y-0.5"
         >
           <Feather className="h-5 w-5 mr-2" />
           Compose
@@ -90,37 +89,36 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="px-2 pb-4 mt-auto">
+      <div className="px-3 pb-5 mt-auto space-y-1">
         {/* Theme toggle */}
         <Button
           variant="ghost"
-          className="w-full justify-start gap-4 px-4 py-3 rounded-xl mb-2 text-foreground hover:bg-accent"
+          className="w-full justify-start gap-4 px-4 py-3.5 rounded-2xl text-foreground hover:bg-surface-container-high"
           onClick={toggleTheme}
         >
-          {isDark ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-          <span className="text-lg">{isDark ? 'Light mode' : 'Dark mode'}</span>
+          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
         </Button>
 
         {/* Sign out */}
         <Button
           variant="ghost"
-          className="w-full justify-start gap-4 px-4 py-3 rounded-xl mb-2 text-foreground hover:bg-accent"
+          className="w-full justify-start gap-4 px-4 py-3.5 rounded-2xl text-foreground hover:bg-surface-container-high"
           onClick={handleSignOut}
         >
-          <LogOut className="h-6 w-6" />
-          <span className="text-lg">Sign out</span>
+          <LogOut className="h-5 w-5" />
+          <span>Sign out</span>
         </Button>
 
         {/* User profile quick access */}
         {profile && (
           <Link
             to="/profile"
-            onClick={() => setIsMobileOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl hover:bg-accent transition-colors"
+            className="flex items-center gap-3 px-4 py-3 mt-3 rounded-2xl hover:bg-surface-container-high transition-all duration-200 group"
           >
-            <Avatar className="h-10 w-10 ring-2 ring-background">
+            <Avatar className="h-11 w-11 ring-2 ring-background shadow-sm">
               <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-              <AvatarFallback className="bg-primary/10 text-primary">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {profile.display_name.charAt(0)}
               </AvatarFallback>
             </Avatar>
@@ -131,16 +129,6 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
           </Link>
         )}
       </div>
-    </>
-  );
-
-  return (
-    <>
-      {/* Desktop sidebar only - mobile uses MobileBottomNav */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r flex-col">
-        <NavContent />
-      </aside>
-    </>
+    </aside>
   );
 }
-

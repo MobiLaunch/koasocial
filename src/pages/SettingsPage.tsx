@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Moon, Sun, Bell, Shield, User, LogOut, Trash2, Globe } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, Bell, Shield, User, LogOut, Trash2, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -45,172 +45,169 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
-      {/* Header - hidden on mobile */}
-      <div className="hidden lg:block sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3">
-        <div className="flex items-center gap-4">
+    <div className="animate-fade-in">
+      {/* Header - M3 Expressive style */}
+      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-xl border-b border-border/50">
+        <div className="px-5 py-5 flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate(-1)}
-            className="rounded-full hover:bg-accent"
+            className="rounded-xl hover:bg-surface-container-high lg:hidden"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="font-display text-xl font-bold">Settings</h1>
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <SettingsIcon className="h-5 w-5 text-primary" />
+          </div>
+          <h1 className="text-headline-medium text-foreground">Settings</h1>
         </div>
-      </div>
+      </header>
 
-      <div className="p-4 space-y-6">
+      <div className="p-5 space-y-5 max-w-2xl mx-auto">
         {/* Appearance */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              {isDark ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+        <Card className="rounded-3xl border-0 koa-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="h-10 w-10 rounded-xl bg-accent/30 flex items-center justify-center">
+                {isDark ? <Moon className="h-5 w-5 text-accent-foreground" /> : <Sun className="h-5 w-5 text-accent-foreground" />}
+              </div>
               Appearance
             </CardTitle>
-            <CardDescription>Customize how Koa looks on your device</CardDescription>
+            <CardDescription className="pl-13">Customize how KoaSocial looks</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="dark-mode" className="text-base font-medium">Dark mode</Label>
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-colors">
+              <div className="space-y-1">
+                <Label htmlFor="dark-mode" className="text-base font-semibold">Dark mode</Label>
                 <p className="text-sm text-muted-foreground">Toggle between light and dark themes</p>
               </div>
               <Switch
                 id="dark-mode"
                 checked={isDark}
                 onCheckedChange={toggleTheme}
+                className="data-[state=checked]:bg-primary"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Notifications */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Bell className="h-5 w-5 text-primary" />
+        <Card className="rounded-3xl border-0 koa-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Bell className="h-5 w-5 text-primary" />
+              </div>
               Notifications
             </CardTitle>
-            <CardDescription>Manage your notification preferences</CardDescription>
+            <CardDescription className="pl-13">Manage your notification preferences</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-likes" className="text-base">Likes</Label>
-              <Switch
-                id="notify-likes"
-                checked={notifications.likes}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, likes: checked })}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-replies" className="text-base">Replies</Label>
-              <Switch
-                id="notify-replies"
-                checked={notifications.replies}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, replies: checked })}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-follows" className="text-base">New followers</Label>
-              <Switch
-                id="notify-follows"
-                checked={notifications.follows}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, follows: checked })}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-mentions" className="text-base">Mentions</Label>
-              <Switch
-                id="notify-mentions"
-                checked={notifications.mentions}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, mentions: checked })}
-              />
-            </div>
+          <CardContent className="space-y-3">
+            {[
+              { id: 'likes', label: 'Likes', value: notifications.likes },
+              { id: 'replies', label: 'Replies', value: notifications.replies },
+              { id: 'follows', label: 'New followers', value: notifications.follows },
+              { id: 'mentions', label: 'Mentions', value: notifications.mentions },
+            ].map((item, index) => (
+              <div key={item.id}>
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-colors">
+                  <Label htmlFor={`notify-${item.id}`} className="text-base font-medium">{item.label}</Label>
+                  <Switch
+                    id={`notify-${item.id}`}
+                    checked={item.value}
+                    onCheckedChange={(checked) => setNotifications({ ...notifications, [item.id]: checked })}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
         {/* Account */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
+        <Card className="rounded-3xl border-0 koa-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="h-10 w-10 rounded-xl bg-secondary/15 flex items-center justify-center">
+                <User className="h-5 w-5 text-secondary" />
+              </div>
               Account
             </CardTitle>
-            <CardDescription>Manage your account settings</CardDescription>
+            <CardDescription className="pl-13">Manage your account settings</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <Button
-              variant="outline"
-              className="w-full justify-start gap-2"
+              variant="ghost"
+              className="w-full justify-start gap-3 h-14 rounded-2xl bg-surface-container hover:bg-surface-container-high font-medium"
               onClick={() => navigate('/profile/edit')}
             >
-              <User className="h-4 w-4" />
+              <User className="h-5 w-5" />
               Edit profile
             </Button>
             <Button
-              variant="outline"
-              className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+              variant="ghost"
+              className="w-full justify-start gap-3 h-14 rounded-2xl bg-surface-container hover:bg-destructive/10 text-destructive font-medium"
               onClick={handleSignOut}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5" />
               Sign out
             </Button>
           </CardContent>
         </Card>
 
         {/* Privacy */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Shield className="h-5 w-5 text-primary" />
+        <Card className="rounded-3xl border-0 koa-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="h-10 w-10 rounded-xl bg-koa-success/15 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-koa-success" />
+              </div>
               Privacy & Security
             </CardTitle>
-            <CardDescription>Control your privacy settings</CardDescription>
+            <CardDescription className="pl-13">Control your privacy settings</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-base font-medium">Public profile</Label>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-colors">
+              <div className="space-y-1">
+                <Label className="text-base font-semibold">Public profile</Label>
                 <p className="text-sm text-muted-foreground">Anyone can see your posts</p>
               </div>
-              <Switch defaultChecked />
+              <Switch defaultChecked className="data-[state=checked]:bg-koa-success" />
             </div>
           </CardContent>
         </Card>
 
         {/* Danger Zone */}
-        <Card className="border-destructive/50 shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg text-destructive">
-              <Trash2 className="h-5 w-5" />
+        <Card className="rounded-3xl border-2 border-destructive/30 koa-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg text-destructive">
+              <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
               Danger Zone
             </CardTitle>
-            <CardDescription>Irreversible actions</CardDescription>
+            <CardDescription className="pl-13">Irreversible actions</CardDescription>
           </CardHeader>
           <CardContent>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full gap-2">
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="destructive" size="lg" className="w-full gap-3 rounded-2xl h-14">
+                  <Trash2 className="h-5 w-5" />
                   Delete account
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="rounded-3xl">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogTitle className="text-xl">Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-base">
                     This action cannot be undone. This will permanently delete your account
                     and remove all your data from our servers.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogFooter className="gap-2">
+                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">
                     Delete account
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -220,9 +217,9 @@ export default function SettingsPage() {
         </Card>
 
         {/* App Info */}
-        <div className="text-center pt-4 pb-8 text-sm text-muted-foreground">
-          <p>Koa Social v1.0.0</p>
-          <p className="mt-1">Made with 💚 for connection</p>
+        <div className="text-center pt-6 pb-10 text-sm text-muted-foreground">
+          <p className="font-semibold">KoaSocial v1.0.0</p>
+          <p className="mt-1">Made with 🧡 for connection</p>
         </div>
       </div>
     </div>
