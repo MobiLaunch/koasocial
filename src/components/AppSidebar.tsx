@@ -1,12 +1,31 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, Globe, Bell, Search, User, Feather, Settings, Moon, Sun, LogOut, MessageCircle } from "lucide-react";
+import {
+  Home,
+  Globe,
+  Bell,
+  Search,
+  User,
+  Feather,
+  Settings,
+  Moon,
+  Sun,
+  LogOut,
+  MessageCircle,
+  MoreHorizontal
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AppSidebarProps {
   onCompose: () => void;
@@ -16,7 +35,6 @@ const navItems = [
   { icon: Home, label: "Home", path: "/home" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Globe, label: "Public", path: "/public" },
-  // Fixed: Added badge: true correctly here
   { icon: MessageCircle, label: "Messages", path: "/messages", badge: true },
   { icon: Bell, label: "Notifications", path: "/notifications", badge: true },
   { icon: User, label: "Profile", path: "/profile" },
@@ -41,14 +59,26 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
   };
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 bg-sidebar border-r border-border/50 flex-col">
-      {/* Logo */}
-      <div className="px-5 py-5 mb-2">
+    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[18rem] bg-background/95 backdrop-blur-xl border-r border-border/40 flex-col z-50">
+      {/* 1. Header & Logo */}
+      <div className="px-6 py-8 flex items-center justify-between">
         <Logo size="md" linkTo="/home" />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3">
+      {/* 2. Primary Action (Extended FAB) 
+          Moved to top as per M3 standards for high prominence */}
+      <div className="px-4 mb-8">
+        <Button
+          onClick={onCompose}
+          className="w-full h-14 rounded-[1.2rem] shadow-lg shadow-primary/20 hover:shadow-primary/30 text-lg font-medium transition-all duration-300 hover:scale-[1.02] bg-primary text-primary-foreground group"
+        >
+          <Feather className="h-6 w-6 mr-3 transition-transform group-hover:rotate-12" />
+          Compose
+        </Button>
+      </div>
+
+      {/* 3. Navigation Drawer */}
+      <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto scrollbar-hide">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -56,79 +86,98 @@ export function AppSidebar({ onCompose }: AppSidebarProps) {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-4 px-4 py-3.5 rounded-2xl mb-1 transition-all duration-300 group",
+                "relative flex items-center gap-4 px-5 py-4 rounded-full transition-all duration-300 group overflow-hidden",
                 isActive
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-foreground hover:bg-surface-container-high",
+                  ? "bg-secondary/60 text-foreground font-bold"
+                  : "text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
               )}
             >
-              <div className="relative">
+              {/* Active Indicator Splash (Optional visual flair) */}
+              {isActive && (
+                <div className="absolute inset-0 bg-primary/10 rounded-full animate-in fade-in zoom-in-95 duration-200" />
+              )}
+              
+              <div className="relative z-10 flex items-center gap-4 w-full">
                 <item.icon
-                  className={cn("h-6 w-6 transition-transform duration-200", !isActive && "group-hover:scale-110")}
+                  strokeWidth={isActive ? 2.8 : 2}
+                  className={cn(
+                    "h-[1.6rem] w-[1.6rem] transition-all duration-300",
+                    isActive ? "text-primary scale-110" : "group-hover:text-foreground"
+                  )}
                 />
-                {/* Notification Badge Logic */}
+                <span className="text-[1.05rem] tracking-wide">{item.label}</span>
+                
+                {/* M3 Style Badge */}
                 {item.badge && unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center shadow-sm">
+                  <span className="ml-auto flex h-6 min-w-6 px-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-sm">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </div>
-              <span className="text-lg">{item.label}</span>
             </Link>
           );
         })}
-
-        {/* Compose button - M3 Extended FAB style */}
-        <Button
-          onClick={onCompose}
-          size="lg"
-          className="w-full mt-6 h-14 rounded-2xl text-base font-semibold koa-gradient text-primary-foreground koa-shadow-lg hover:koa-shadow-xl transition-all duration-300 hover:-translate-y-0.5"
-        >
-          <Feather className="h-5 w-5 mr-2" />
-          Compose
-        </Button>
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 pb-5 mt-auto space-y-1">
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-4 px-4 py-3.5 rounded-2xl text-foreground hover:bg-surface-container-high"
-          onClick={toggleTheme}
-        >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          <span>{isDark ? "Light mode" : "Dark mode"}</span>
-        </Button>
+      {/* 4. Bottom Actions / Profile Card */}
+      <div className="p-4 mt-auto">
+        <div className="rounded-[1.5rem] bg-secondary/30 p-2 border border-border/50">
+          
+          {/* User Row */}
+          {profile && (
+            <Link
+              to="/profile"
+              className="flex items-center gap-3 p-2 rounded-2xl hover:bg-background/80 transition-colors group mb-1"
+            >
+              <Avatar className="h-10 w-10 ring-2 ring-background transition-transform group-hover:scale-105">
+                <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+                <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                  {profile.display_name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <span className="font-bold text-sm text-foreground truncate leading-none mb-1">
+                  {profile.display_name}
+                </span>
+                <span className="text-xs text-muted-foreground truncate leading-none">
+                  @{profile.username}
+                </span>
+              </div>
+            </Link>
+          )}
 
-        {/* Sign out */}
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-4 px-4 py-3.5 rounded-2xl text-foreground hover:bg-surface-container-high"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Sign out</span>
-        </Button>
+          {/* Quick Settings Grid */}
+          <div className="grid grid-cols-2 gap-1 mt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="h-10 rounded-xl hover:bg-background/80 text-muted-foreground hover:text-foreground"
+            >
+              {isDark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+              <span className="text-xs font-medium">{isDark ? "Light" : "Dark"}</span>
+            </Button>
 
-        {/* User profile quick access */}
-        {profile && (
-          <Link
-            to="/profile"
-            className="flex items-center gap-3 px-4 py-3 mt-3 rounded-2xl hover:bg-surface-container-high transition-all duration-200 group"
-          >
-            <Avatar className="h-11 w-11 ring-2 ring-background shadow-sm">
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                {profile.display_name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-foreground truncate">{profile.display_name}</div>
-              <div className="text-sm text-muted-foreground truncate">@{profile.username}</div>
-            </div>
-          </Link>
-        )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 rounded-xl hover:bg-background/80 text-muted-foreground hover:text-foreground"
+                >
+                  <MoreHorizontal className="h-4 w-4 mr-2" />
+                  <span className="text-xs font-medium">More</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl p-2">
+                <DropdownMenuItem onClick={handleSignOut} className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </div>
     </aside>
   );
