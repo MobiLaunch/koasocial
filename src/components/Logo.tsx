@@ -17,7 +17,7 @@ export function Logo({
 }: LogoProps) {
   const textSize = sizeClasses[size];
   const content = <div className={cn("flex items-center", className)}>
-      <span className={cn("text-foreground tracking-tight mx-0 px-[500px] my-0 text-6xl font-serif text-center font-thin", textSize)}>
+      <span className={cn("text-foreground tracking-tight font-serif font-thin", textSize)}>
         koasocial
         <span className="text-primary">.</span>
       </span>
