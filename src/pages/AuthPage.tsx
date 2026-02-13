@@ -51,26 +51,19 @@ export default function AuthPage() {
           throw new Error('Username is already taken');
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
             emailRedirectTo: window.location.origin,
+            data: {
+              user_name: formData.username.toLowerCase(),
+              full_name: formData.displayName || formData.username,
+            },
           },
         });
 
         if (error) throw error;
-
-        if (data.user) {
-          // Create profile
-          const { error: profileError } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            username: formData.username.toLowerCase(),
-            display_name: formData.displayName || formData.username,
-          } as any);
-
-          if (profileError) throw profileError;
-        }
 
         toast({
           title: 'Check your email!',
