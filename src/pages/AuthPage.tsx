@@ -109,11 +109,16 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Background decorations - use smaller blurs on mobile for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 right-10 w-64 h-64 bg-secondary/10 rounded-full blur-3xl" />
+      </div>
+      {/* Lightweight mobile background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none md:hidden">
+        <div className="absolute top-0 left-1/4 w-48 h-48 bg-primary/5 rounded-full blur-xl" />
+        <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-accent/5 rounded-full blur-xl" />
       </div>
 
       {/* Loading indicator at top */}
@@ -128,7 +133,7 @@ export default function AuthPage() {
         <Logo size="md" />
       </div>
 
-      <Card className="w-full max-w-md rounded-3xl border-0 koa-shadow-lg bg-card/95 backdrop-blur-sm relative animate-scale-in">
+      <Card className="w-full max-w-md rounded-3xl border-0 koa-shadow-lg bg-card relative animate-scale-in md:bg-card/95 md:backdrop-blur-sm">
         <CardHeader className="text-center pb-2 pt-8">
           <div className="flex justify-center mb-6">
             <Logo size="lg" linkTo="/" />
